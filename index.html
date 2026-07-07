@@ -50,6 +50,36 @@
   h1{font-size:23px; margin:0; font-weight:800; letter-spacing:-0.015em;}
   .user-chip{font-family:var(--mono); font-size:11px; color:var(--text-dim);}
 
+  .tab-bar{display:flex; gap:4px; margin-bottom:18px; border-bottom:1px solid var(--border-soft);}
+  .tab-btn{
+    background:none; border:none; color:var(--text-dim); font-family:var(--sans); font-weight:600;
+    font-size:13.5px; padding:10px 4px; margin-right:18px; cursor:pointer; position:relative; top:1px;
+    border-bottom:2px solid transparent;
+  }
+  .tab-btn:hover{color:var(--text);}
+  .tab-btn.active{color:var(--text); border-bottom-color:var(--accent);}
+
+  .setup-note{font-size:12.5px; color:var(--text-dim); line-height:1.6; margin:0 0 12px;}
+  .v-inline{font-family:var(--mono); background:var(--surface-2); padding:1px 6px; border-radius:5px; color:var(--offer);}
+  .uid-box{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--surface-2); border:1px solid var(--border); border-radius:9px;
+    padding:10px 12px; font-family:var(--mono); font-size:12.5px; word-break:break-all;
+  }
+  .video-card{
+    background:var(--surface-2); border:1px solid var(--border); border-radius:10px;
+    padding:12px 14px; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  }
+  .video-card a{color:var(--accent); font-family:var(--mono); font-size:12.5px; text-decoration:none; word-break:break-all;}
+  .video-card a:hover{text-decoration:underline;}
+  .video-views{font-family:var(--mono); font-weight:700; font-size:15px; white-space:nowrap;}
+  .video-milestones{display:flex; gap:5px; flex-wrap:wrap;}
+  .video-milestones .m{
+    font-family:var(--mono); font-size:10.5px; background:var(--ready-bg); color:var(--ready);
+    padding:2px 7px; border-radius:999px;
+  }
+  .video-updated{font-family:var(--mono); font-size:10.5px; color:var(--text-faint); margin-left:auto; white-space:nowrap;}
+
   /* Stats */
   .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:16px;}
   .stat{
@@ -275,53 +305,103 @@
       </div>
     </div>
 
-    <div class="banner" id="storageWarning"></div>
-    <div class="banner" id="readyBanner"></div>
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="accounts">Accounts</button>
+      <button class="tab-btn" data-tab="viewtracker">View Tracker</button>
+    </div>
 
-    <div class="stats" id="stats"></div>
+    <div id="accountsTab" class="tab-panel">
+      <div class="banner" id="storageWarning"></div>
+      <div class="banner" id="readyBanner"></div>
 
-    <div class="panel" id="offersPanel">
-      <div class="panel-head" id="offersPanelHead">
-        <span class="title">Offers</span>
-        <span class="hint">reusable tags, assign to any account</span>
-        <span class="panel-caret" id="offersCaret">▸</span>
-      </div>
-      <div class="panel-body" id="offersPanelBody">
-        <div class="offer-add-row">
-          <input id="new-offer-input" placeholder="e.g. Sweepstakes US">
-          <button class="btn small" id="addOfferBtn">Add offer</button>
+      <div class="stats" id="stats"></div>
+
+      <div class="panel" id="offersPanel">
+        <div class="panel-head" id="offersPanelHead">
+          <span class="title">Offers</span>
+          <span class="hint">reusable tags, assign to any account</span>
+          <span class="panel-caret" id="offersCaret">▸</span>
         </div>
-        <div class="offer-chips" id="offerChips"></div>
+        <div class="panel-body" id="offersPanelBody">
+          <div class="offer-add-row">
+            <input id="new-offer-input" placeholder="e.g. Sweepstakes US">
+            <button class="btn small" id="addOfferBtn">Add offer</button>
+          </div>
+          <div class="offer-chips" id="offerChips"></div>
+        </div>
       </div>
+
+      <div class="search-row">
+        <input id="searchInput" placeholder="Search by handle or email...">
+        <button class="btn" id="toggleForm">+ Add account</button>
+      </div>
+
+      <div class="filter-bar" id="filterBar"></div>
+
+      <div class="form-card" id="formCard">
+        <div class="form-grid">
+          <div><label>Handle / username</label><input id="f-handle" placeholder="@username"></div>
+          <div><label>Phone / device</label><input id="f-phone" placeholder="Phone 1"></div>
+          <div><label>Email</label><input id="f-email" placeholder="account email"></div>
+          <div><label>Password</label><input id="f-password" placeholder="password"></div>
+          <div><label>Created date</label><input id="f-created" type="date"></div>
+          <div><label>Offer</label><select id="f-offer"><option value="">No offer</option></select></div>
+          <div><label>Notes</label><input id="f-notes" placeholder="optional"></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn" id="saveAccount">Save account</button>
+          <button class="btn ghost" id="cancelForm">Cancel</button>
+        </div>
+      </div>
+
+      <div id="list"></div>
+      <div class="notice">Synced through Firebase — sign in with the same email on any phone or PC to see the same list, live.</div>
     </div>
 
-    <div class="search-row">
-      <input id="searchInput" placeholder="Search by handle or email...">
-      <button class="btn" id="toggleForm">+ Add account</button>
-    </div>
-
-    <div class="filter-bar" id="filterBar"></div>
-
-    <div class="form-card" id="formCard">
-      <div class="form-grid">
-        <div><label>Handle / username</label><input id="f-handle" placeholder="@username"></div>
-        <div><label>Phone / device</label><input id="f-phone" placeholder="Phone 1"></div>
-        <div><label>Email</label><input id="f-email" placeholder="account email"></div>
-        <div><label>Password</label><input id="f-password" placeholder="password"></div>
-        <div><label>Created date</label><input id="f-created" type="date"></div>
-        <div><label>Offer</label><select id="f-offer"><option value="">No offer</option></select></div>
-        <div><label>Notes</label><input id="f-notes" placeholder="optional"></div>
+    <div id="viewtrackerTab" class="tab-panel" style="display:none;">
+      <div class="panel">
+        <div class="panel-head" style="cursor:default;">
+          <span class="title">Bot setup</span>
+        </div>
+        <div class="panel-body show" style="margin-top:10px;">
+          <p class="setup-note">
+            The scraper runs on a schedule elsewhere (GitHub Actions), not in this browser tab — it needs to run whether or not this page is open.
+            Point it at your data with this ID, set once as a <span class="v-inline">FIRESTORE_UID</span> secret in that repo:
+          </p>
+          <div class="uid-box">
+            <span id="uidDisplay">—</span>
+            <span class="icon-btn" id="copyUidBtn">copy</span>
+          </div>
+        </div>
       </div>
-      <div class="form-actions">
-        <button class="btn" id="saveAccount">Save account</button>
-        <button class="btn ghost" id="cancelForm">Cancel</button>
+
+      <div class="panel">
+        <div class="panel-head" style="cursor:default;">
+          <span class="title">Tracked profiles</span>
+          <span class="hint">public TikTok profile links the bot checks</span>
+        </div>
+        <div class="panel-body show" style="margin-top:10px;">
+          <div class="offer-add-row">
+            <input id="new-profile-input" placeholder="handle, no @ symbol">
+            <button class="btn small" id="addProfileBtn">Add profile</button>
+          </div>
+          <div class="offer-chips" id="profileChips"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head" style="cursor:default;">
+          <span class="title">Tracked videos</span>
+          <span class="hint">live results from the bot's last checks</span>
+        </div>
+        <div class="panel-body show" style="margin-top:10px;">
+          <div id="videoList"></div>
+        </div>
       </div>
     </div>
-
-    <div id="list"></div>
-    <div class="notice">Synced through Firebase — sign in with the same email on any phone or PC to see the same list, live.</div>
   </div>
 </div>
+
 
 <script>
 // ====== FIREBASE CONFIG ======
@@ -341,6 +421,8 @@ const db = firebase.firestore();
 const WARMUP_DAYS = 4;
 let accounts = [];
 let offers = [];
+let trackedProfiles = [];
+let trackedVideos = [];
 let activePhoneFilter = 'all';
 let activeOfferFilter = 'all';
 let activeStatusFilter = 'all';
@@ -351,6 +433,7 @@ let expandedIds = new Set();
 let editingIds = new Set();
 let currentUid = null;
 let unsubscribeSnapshot = null;
+let unsubscribeVideoSnapshot = null;
 
 function genId(){ return 'a' + Math.random().toString(36).slice(2,10); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
@@ -389,6 +472,7 @@ document.getElementById('signUpBtn').onclick = async () => {
 };
 document.getElementById('signOutBtn').onclick = async () => {
   if(unsubscribeSnapshot) unsubscribeSnapshot();
+  if(unsubscribeVideoSnapshot) unsubscribeVideoSnapshot();
   await auth.signOut();
 };
 auth.onAuthStateChanged(user => {
@@ -397,10 +481,13 @@ auth.onAuthStateChanged(user => {
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('appScreen').style.display = 'block';
     document.getElementById('userChip').textContent = user.email;
+    document.getElementById('uidDisplay').textContent = user.uid;
     subscribeToAccounts();
+    subscribeToVideos();
   } else {
     currentUid = null;
     if(unsubscribeSnapshot) unsubscribeSnapshot();
+    if(unsubscribeVideoSnapshot) unsubscribeVideoSnapshot();
     document.getElementById('authScreen').style.display = 'block';
     document.getElementById('appScreen').style.display = 'none';
   }
@@ -412,9 +499,20 @@ function subscribeToAccounts(){
     const data = snap.exists ? snap.data() : {};
     accounts = data.accounts || [];
     offers = data.offers || [];
+    trackedProfiles = data.trackedProfiles || [];
     render();
   }, err => {
     showStorageWarning('Live sync error (' + err.message + '). Changes may not be saving.', true);
+  });
+}
+
+function subscribeToVideos(){
+  const colRef = db.collection('videoTracker').doc(currentUid).collection('videos');
+  unsubscribeVideoSnapshot = colRef.onSnapshot(snap => {
+    trackedVideos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderVideoList();
+  }, err => {
+    console.error('Video tracker sync error:', err.message);
   });
 }
 
@@ -437,7 +535,7 @@ async function saveData(){
   const attempts = 3;
   for(let i = 0; i < attempts; i++){
     try{
-      await db.collection('trackers').doc(currentUid).set({accounts, offers}, {merge:true});
+      await db.collection('trackers').doc(currentUid).set({accounts, offers, trackedProfiles}, {merge:true});
       const el = document.getElementById('storageWarning');
       el.classList.remove('show'); el.innerHTML = '';
       return;
@@ -836,6 +934,92 @@ function clearForm(){
   ['f-handle','f-phone','f-email','f-password','f-notes'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('f-offer').value = '';
 }
+
+// ---- Tabs ----
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('accountsTab').style.display = btn.dataset.tab === 'accounts' ? 'block' : 'none';
+    document.getElementById('viewtrackerTab').style.display = btn.dataset.tab === 'viewtracker' ? 'block' : 'none';
+  };
+});
+
+// ---- UID copy ----
+document.getElementById('copyUidBtn').onclick = () => {
+  const text = document.getElementById('uidDisplay').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyUidBtn');
+    const original = btn.textContent;
+    btn.textContent = 'copied!';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  });
+};
+
+// ---- Tracked profiles ----
+function renderProfileChips(){
+  const el = document.getElementById('profileChips');
+  if(trackedProfiles.length === 0){
+    el.innerHTML = '<div class="offer-empty">No profiles tracked yet — add a handle above.</div>';
+    return;
+  }
+  el.innerHTML = trackedProfiles.map(p => `
+    <span class="offer-chip">@${escapeHtml(p)} <span class="x" data-profile="${escapeAttr(p)}">×</span></span>
+  `).join('');
+  el.querySelectorAll('.x').forEach(x => {
+    x.onclick = () => {
+      trackedProfiles = trackedProfiles.filter(p => p !== x.dataset.profile);
+      saveData(); renderProfileChips();
+    };
+  });
+}
+document.getElementById('addProfileBtn').onclick = () => {
+  const input = document.getElementById('new-profile-input');
+  let val = input.value.trim().replace(/^@/, '');
+  if(!val) return;
+  if(!trackedProfiles.includes(val)) trackedProfiles.push(val);
+  input.value = '';
+  saveData(); renderProfileChips();
+};
+document.getElementById('new-profile-input').addEventListener('keydown', e => {
+  if(e.key === 'Enter') document.getElementById('addProfileBtn').click();
+});
+
+// ---- Tracked videos ----
+function timeAgo(iso){
+  if(!iso) return '';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if(mins < 1) return 'just now';
+  if(mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if(hrs < 24) return hrs + 'h ago';
+  return Math.floor(hrs / 24) + 'd ago';
+}
+function renderVideoList(){
+  const el = document.getElementById('videoList');
+  if(!el) return;
+  if(trackedVideos.length === 0){
+    el.innerHTML = '<div class="offer-empty">No results yet. Once profiles are added above, the bot picks them up on its next scheduled run.</div>';
+    return;
+  }
+  const sorted = trackedVideos.slice().sort((a,b) => (b.views||0) - (a.views||0));
+  el.innerHTML = sorted.map(v => `
+    <div class="video-card">
+      <a href="${escapeAttr(v.url||'#')}" target="_blank" rel="noopener">${escapeHtml(v.url||'—')}</a>
+      <span class="video-views">${(v.views||0).toLocaleString()} views</span>
+      <div class="video-milestones">${(v.notifiedMilestones||[]).map(m => `<span class="m">${m.toLocaleString()}</span>`).join('')}</div>
+      <span class="video-updated">updated ${timeAgo(v.updatedAt)}</span>
+    </div>
+  `).join('');
+}
+
+// re-render profile chips whenever accounts/offers data refreshes too
+const _origRender = render;
+render = function(){
+  _origRender();
+  renderProfileChips();
+};
 </script>
 </body>
 </html>
