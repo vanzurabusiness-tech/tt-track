@@ -8,217 +8,249 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
 
   :root{
-    --bg: #12151A;
-    --surface: #1B1F26;
-    --surface-2: #232833;
-    --border: #2E3542;
-    --text: #E7EAEE;
-    --text-dim: #8993A3;
+    --bg: #101319;
+    --surface: #191D25;
+    --surface-2: #21262F;
+    --surface-3: #2A303B;
+    --border: #2C3340;
+    --border-soft: #232833;
+    --text: #ECEEF2;
+    --text-dim: #8891A0;
+    --text-faint: #5C6577;
     --mono: 'JetBrains Mono', monospace;
     --sans: 'Inter', sans-serif;
+    --accent: #4C7CF2;
+    --accent-dim: rgba(76,124,242,0.14);
+    --offer: #A87EF0;
+    --offer-bg: rgba(168,126,240,0.14);
     --ready: #3ED598;
-    --ready-bg: rgba(62,213,152,0.12);
+    --ready-bg: rgba(62,213,152,0.13);
     --warming: #F2A93B;
-    --warming-bg: rgba(242,169,59,0.12);
+    --warming-bg: rgba(242,169,59,0.13);
     --idle: #6B7686;
-    --idle-bg: rgba(107,118,134,0.12);
+    --idle-bg: rgba(107,118,134,0.13);
     --danger: #F2564B;
+    --danger-bg: rgba(242,86,75,0.13);
   }
   *{box-sizing:border-box;}
   body{
     margin:0; background:var(--bg); color:var(--text);
-    font-family:var(--sans); padding:28px 20px 80px;
+    font-family:var(--sans); padding:26px 20px 90px; -webkit-font-smoothing:antialiased;
   }
-  .wrap{max-width:1000px; margin:0 auto;}
+  .wrap{max-width:1040px; margin:0 auto;}
 
-  header{margin-bottom:22px;}
-  header .eyebrow{
+  .header-row{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:20px;}
+  .eyebrow{
     font-family:var(--mono); font-size:11px; letter-spacing:0.14em;
-    color:var(--text-dim); text-transform:uppercase; margin-bottom:6px;
+    color:var(--text-faint); text-transform:uppercase; margin-bottom:5px;
   }
-  h1{font-size:22px; margin:0; font-weight:700; letter-spacing:-0.01em;}
+  h1{font-size:23px; margin:0; font-weight:800; letter-spacing:-0.015em;}
+  .user-chip{font-family:var(--mono); font-size:11px; color:var(--text-dim);}
 
-  .stats{
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
-    gap:10px; margin:18px 0 22px;
-  }
+  /* Stats */
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:16px;}
   .stat{
-    background:var(--surface); border:1px solid var(--border); border-radius:10px;
-    padding:12px 14px;
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:12px;
+    padding:12px 14px; cursor:pointer; transition:all .15s;
   }
-  .stat .n{font-family:var(--mono); font-size:22px; font-weight:700;}
-  .stat .l{font-size:11px; color:var(--text-dim); margin-top:2px;}
-  .stat.ready .n{color:var(--ready);}
-  .stat.warming .n{color:var(--warming);}
+  .stat:hover{border-color:var(--border);}
+  .stat.active{border-color:var(--accent); background:var(--accent-dim);}
+  .stat .n{font-family:var(--mono); font-size:21px; font-weight:700; line-height:1;}
+  .stat .l{font-size:10.5px; color:var(--text-dim); margin-top:4px; text-transform:uppercase; letter-spacing:.04em;}
+  .stat.ready .n{color:var(--ready);} .stat.ready.active{border-color:var(--ready); background:var(--ready-bg);}
+  .stat.warming .n{color:var(--warming);} .stat.warming.active{border-color:var(--warming); background:var(--warming-bg);}
 
   .banner{
-    display:none; background:var(--ready-bg); border:1px solid var(--ready);
-    color:var(--ready); border-radius:10px; padding:12px 16px; margin-bottom:18px;
-    font-size:13px; font-family:var(--mono); align-items:center; gap:8px;
+    display:none; border-radius:11px; padding:11px 16px; margin-bottom:14px;
+    font-size:12.5px; font-family:var(--mono); align-items:center; gap:8px; flex-wrap:wrap;
   }
   .banner.show{display:flex;}
+  #readyBanner{background:var(--ready-bg); border:1px solid var(--ready); color:var(--ready);}
+  #storageWarning{background:var(--danger-bg); border:1px solid var(--danger); color:var(--danger);}
 
-  .toolbar{
-    display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px;
+  /* Offers panel */
+  .panel{
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:12px;
+    padding:14px 16px; margin-bottom:14px;
   }
-  .filter-btn{
-    background:var(--surface); border:1px solid var(--border); color:var(--text-dim);
-    font-family:var(--mono); font-size:12px; padding:7px 12px; border-radius:999px;
-    cursor:pointer; transition:all .15s;
+  .panel-head{display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;}
+  .panel-head .title{font-weight:700; font-size:13.5px;}
+  .panel-head .hint{color:var(--text-faint); font-size:11.5px; font-family:var(--mono);}
+  .panel-caret{margin-left:auto; color:var(--text-dim); font-size:12px;}
+  .panel-body{margin-top:12px; display:none;}
+  .panel-body.show{display:block;}
+  .offer-add-row{display:flex; gap:8px;}
+  .offer-add-row input{flex:1;}
+  .offer-chips{display:flex; flex-wrap:wrap; gap:7px; margin-top:12px;}
+  .offer-chip{
+    display:inline-flex; align-items:center; gap:7px; font-family:var(--mono); font-size:12px;
+    background:var(--offer-bg); color:var(--offer); border:1px solid rgba(168,126,240,0.35);
+    padding:5px 8px 5px 11px; border-radius:999px;
   }
-  .filter-btn.active{background:var(--surface-2); color:var(--text); border-color:#454E5F;}
+  .offer-chip .x{cursor:pointer; opacity:.7; padding:0 3px;}
+  .offer-chip .x:hover{opacity:1; color:var(--danger);}
+  .offer-empty{color:var(--text-faint); font-size:12px; font-family:var(--mono); margin-top:10px;}
+
+  /* Toolbar / filters */
+  .search-row{display:flex; gap:8px; margin-bottom:12px;}
+  .search-row input{flex:1;}
+  .filter-bar{
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:16px;
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:12px; padding:10px 12px;
+  }
+  .filter-group{display:flex; gap:6px; flex-wrap:wrap; align-items:center;}
+  .filter-label{font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; font-family:var(--mono); margin-right:2px;}
+  select.filter-select{
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+    border-radius:8px; padding:7px 10px; font-size:12px; font-family:var(--mono); max-width:160px;
+  }
+  .chip{
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text-dim);
+    font-family:var(--mono); font-size:12px; padding:6px 11px; border-radius:999px;
+    cursor:pointer; transition:all .15s; white-space:nowrap;
+  }
+  .chip:hover{color:var(--text);}
+  .chip.active{background:var(--surface-3); color:var(--text); border-color:#3B4454;}
+  .chip.flag-jail.active{background:var(--idle-bg); border-color:var(--idle); color:#C7CDD6;}
+  .chip.flag-viral.active{background:var(--ready-bg); border-color:var(--ready); color:var(--ready);}
+  .chip.flag-cooked.active{background:var(--danger-bg); border-color:var(--danger); color:var(--danger);}
+  .divider-v{width:1px; height:20px; background:var(--border); margin:0 2px;}
   .spacer{flex:1;}
+  .clear-filters{color:var(--text-faint); font-size:11.5px; font-family:var(--mono); cursor:pointer; text-decoration:underline; white-space:nowrap;}
+
+  .toolbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px;}
   .btn{
-    background:#3E6FF2; color:white; border:none; font-family:var(--sans);
-    font-weight:600; font-size:13px; padding:9px 16px; border-radius:8px; cursor:pointer;
+    background:var(--accent); color:white; border:none; font-family:var(--sans);
+    font-weight:600; font-size:13px; padding:10px 16px; border-radius:9px; cursor:pointer;
+    transition:background .15s;
   }
-  .btn:hover{background:#345ed4;}
+  .btn:hover{background:#3E6BE0;}
   .btn.ghost{background:transparent; border:1px solid var(--border); color:var(--text-dim);}
   .btn.ghost:hover{color:var(--text); border-color:#454E5F;}
-  .btn.small{padding:6px 10px; font-size:12px;}
+  .btn.small{padding:7px 12px; font-size:12.5px;}
 
   .form-card{
-    background:var(--surface); border:1px solid var(--border); border-radius:12px;
-    padding:16px; margin-bottom:20px; display:none;
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:14px;
+    padding:18px; margin-bottom:18px; display:none;
   }
   .form-card.show{display:block;}
-  .form-grid{
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px;
-  }
+  .form-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px;}
   label{font-size:11px; color:var(--text-dim); display:block; margin-bottom:4px; font-family:var(--mono);}
-  input, select{
+  input, select, textarea{
     width:100%; background:var(--surface-2); border:1px solid var(--border); color:var(--text);
-    border-radius:7px; padding:8px 10px; font-size:13px; font-family:var(--mono);
+    border-radius:8px; padding:9px 11px; font-size:13px; font-family:var(--mono);
   }
-  input:focus, select:focus{outline:none; border-color:#3E6FF2;}
+  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--accent);}
   .form-actions{margin-top:14px; display:flex; gap:8px;}
 
+  .empty{
+    text-align:center; padding:56px 20px; color:var(--text-dim); font-family:var(--mono); font-size:13px;
+    border:1px dashed var(--border); border-radius:14px;
+  }
+
+  /* Cards */
   .card{
-    background:var(--surface); border:1px solid var(--border); border-radius:12px;
-    padding:14px 16px; margin-bottom:10px;
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:14px;
+    padding:14px 16px; margin-bottom:9px; transition:border-color .15s;
   }
-  .card-top{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .card:hover{border-color:var(--border);}
+  .card-top{display:flex; align-items:center; gap:9px; flex-wrap:wrap;}
+  .chevron{
+    background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:11px;
+    padding:4px 6px; margin-left:-6px; border-radius:5px;
+  }
+  .chevron:hover{color:var(--text); background:var(--surface-2);}
   .handle{font-family:var(--mono); font-weight:700; font-size:14px;}
-  .phone-tag{
+  .tag{
     font-family:var(--mono); font-size:11px; color:var(--text-dim);
-    background:var(--surface-2); border:1px solid var(--border); padding:2px 8px; border-radius:6px;
+    background:var(--surface-2); border:1px solid var(--border); padding:3px 9px; border-radius:7px;
   }
-  .badge{
-    font-family:var(--mono); font-size:11px; font-weight:600; padding:3px 9px;
-    border-radius:999px; margin-left:auto;
-  }
+  .tag.offer-tag{color:var(--offer); background:var(--offer-bg); border-color:rgba(168,126,240,0.35);}
+  .badge{font-family:var(--mono); font-size:11px; font-weight:600; padding:4px 10px; border-radius:999px;}
   .badge.ready{background:var(--ready-bg); color:var(--ready);}
   .badge.warming{background:var(--warming-bg); color:var(--warming);}
   .badge.idle{background:var(--idle-bg); color:var(--idle);}
+  .flag-emoji{font-size:13px;}
 
-  .card-body{
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px 16px;
-    margin-top:12px; font-size:12.5px;
-  }
-  .field .k{color:var(--text-dim); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; margin-bottom:2px; font-family:var(--mono);}
-  .field .v{font-family:var(--mono);}
-  .pw-row{display:flex; align-items:center; gap:6px;}
-  .pw-toggle{cursor:pointer; color:var(--text-dim); font-size:11px; text-decoration:underline;}
-
-  .warmup-row{
-    margin-top:12px; padding-top:12px; border-top:1px solid var(--border);
+  .quick-row{
+    margin-top:11px; padding-top:11px; border-top:1px solid var(--border-soft);
     display:flex; align-items:center; gap:10px; flex-wrap:wrap;
   }
-  .check{display:flex; align-items:center; gap:7px; cursor:pointer; font-size:12.5px;}
+  .quick-row select{max-width:160px; flex-shrink:0;}
+  .check{display:flex; align-items:center; gap:7px; cursor:pointer; font-size:12.5px; flex-shrink:0;}
   .check input{width:auto;}
-  .progress-track{
-    flex:1; min-width:120px; height:6px; background:var(--surface-2); border-radius:99px; overflow:hidden;
-  }
+  .progress-track{flex:1; min-width:90px; height:6px; background:var(--surface-2); border-radius:99px; overflow:hidden;}
   .progress-fill{height:100%; background:var(--ready); border-radius:99px; transition:width .3s;}
   .progress-fill.warming{background:var(--warming);}
   .days-label{font-family:var(--mono); font-size:11px; color:var(--text-dim); white-space:nowrap;}
 
-  .flags-row{
-    margin-top:10px; padding-top:10px; border-top:1px solid var(--border);
-    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-  }
+  .flags-row{margin-top:9px; display:flex; align-items:center; gap:7px; flex-wrap:wrap;}
   .flag-chip{
-    display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12px;
+    display:flex; align-items:center; gap:6px; cursor:pointer; font-size:11.5px;
     font-family:var(--mono); padding:5px 10px; border-radius:999px;
     border:1px solid var(--border); color:var(--text-dim); background:var(--surface-2);
     transition:all .15s; user-select:none;
   }
   .flag-chip input{width:auto; margin:0;}
-  .flag-chip.jail.active{background:rgba(107,118,134,0.18); border-color:var(--idle); color:#C7CDD6;}
+  .flag-chip.jail.active{background:var(--idle-bg); border-color:var(--idle); color:#C7CDD6;}
   .flag-chip.viral.active{background:var(--ready-bg); border-color:var(--ready); color:var(--ready);}
-  .flag-chip.cooked.active{background:rgba(242,86,75,0.14); border-color:var(--danger); color:var(--danger);}
+  .flag-chip.cooked.active{background:var(--danger-bg); border-color:var(--danger); color:var(--danger);}
 
-  .notes-box{
-    width:100%; background:var(--surface-2); border:1px solid var(--border); color:var(--text);
-    border-radius:7px; padding:8px 10px; font-size:12.5px; font-family:var(--sans);
-    resize:vertical; min-height:34px; margin-top:8px;
-  }
-  .notes-box:focus{outline:none; border-color:#3E6FF2;}
+  .card-details{margin-top:11px; padding-top:11px; border-top:1px solid var(--border-soft);}
+  .card-body{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px 16px; font-size:12.5px;}
+  .field .k{color:var(--text-faint); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; margin-bottom:2px; font-family:var(--mono);}
+  .field .v{font-family:var(--mono);}
+  .pw-row{display:flex; align-items:center; gap:6px;}
+  .pw-toggle{cursor:pointer; color:var(--text-dim); font-size:11px; text-decoration:underline;}
+  .notes-box{resize:vertical; min-height:36px; margin-top:10px; font-family:var(--sans); font-size:12.5px;}
 
-  .edit-input{
-    background:var(--surface-2); border:1px solid #3E6FF2; color:var(--text);
-    border-radius:6px; padding:6px 9px; font-size:12.5px; font-family:var(--mono); width:100%;
-  }
-  .edit-input:focus{outline:none;}
+  .edit-input{border:1px solid var(--accent) !important;}
 
-  .card-actions{margin-top:12px; display:flex; gap:8px; justify-content:flex-end;}
+  .card-actions{margin-top:11px; display:flex; gap:14px; justify-content:flex-end; align-items:center;}
   .icon-btn{
     background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:12px;
-    font-family:var(--mono); text-decoration:underline;
+    font-family:var(--mono); text-decoration:underline; padding:0;
   }
+  .icon-btn:hover{color:var(--text);}
   .icon-btn.danger{color:var(--danger);}
+  .icon-btn.danger:hover{color:#ff7a70;}
 
-  .empty{
-    text-align:center; padding:50px 20px; color:var(--text-dim); font-family:var(--mono); font-size:13px;
-    border:1px dashed var(--border); border-radius:12px;
-  }
-  .notice{font-size:11px; color:var(--text-dim); margin-top:24px; text-align:center;}
+  .notice{font-size:11px; color:var(--text-faint); margin-top:26px; text-align:center;}
 
   .auth-wrap{
-    max-width:360px; margin:80px auto; background:var(--surface); border:1px solid var(--border);
-    border-radius:14px; padding:28px;
+    max-width:360px; margin:80px auto; background:var(--surface); border:1px solid var(--border-soft);
+    border-radius:16px; padding:28px;
   }
   .auth-wrap h2{margin:0 0 4px; font-size:19px;}
   .auth-wrap p{color:var(--text-dim); font-size:13px; margin:0 0 20px;}
   .auth-wrap label{margin-top:12px;}
-  .auth-error{
-    color:var(--danger); font-size:12px; font-family:var(--mono); margin-top:10px; display:none;
-  }
+  .auth-error{color:var(--danger); font-size:12px; font-family:var(--mono); margin-top:10px; display:none;}
   .auth-error.show{display:block;}
   .auth-actions{display:flex; gap:8px; margin-top:16px;}
-  .header-row{display:flex; align-items:center; justify-content:space-between; gap:10px;}
-  .user-chip{font-family:var(--mono); font-size:11px; color:var(--text-dim);}
 
   @media (max-width: 600px){
-    body{padding:16px 12px 70px; font-size:15px;}
+    body{padding:16px 12px 80px; font-size:15px;}
     h1{font-size:19px;}
     .auth-wrap{margin:40px auto; padding:22px 18px; max-width:100%;}
     .header-row{flex-direction:column; align-items:flex-start; gap:8px;}
-    .header-row > div:last-child{text-align:left; width:100%; display:flex; align-items:center; justify-content:space-between;}
-    .stats{grid-template-columns:repeat(2, 1fr);}
-    .toolbar{gap:6px;}
-    .btn, .filter-btn, input, select, .edit-input, textarea, button{font-size:16px;}
-    .btn{padding:12px 16px; width:100%;}
-    .toolbar .btn{width:auto; flex:1;}
+    .stats{grid-template-columns:repeat(2,1fr);}
+    .btn, .chip, input, select, textarea, button{font-size:16px;}
+    .btn{padding:12px 16px;}
     .form-grid{grid-template-columns:1fr;}
     .card-body{grid-template-columns:1fr;}
-    .card-top{gap:8px;}
-    .badge{margin-left:0;}
-    .warmup-row, .flags-row{gap:10px;}
-    .flag-chip{padding:9px 12px; font-size:13px;}
-    .check{font-size:14px;}
-    .card-actions{flex-wrap:wrap;}
-    .card-actions button{padding:8px 4px; flex:1; text-align:center;}
-    .icon-btn{font-size:13px;}
-    .filter-btn{padding:9px 14px; font-size:13px;}
+    .quick-row select{max-width:100%; width:100%;}
+    .filter-bar{gap:10px;}
+    .filter-group{width:100%;}
+    select.filter-select{max-width:none; flex:1;}
   }
 </style>
 </head>
 <body>
 <div class="wrap">
+
   <div class="auth-wrap" id="authScreen">
     <h2>Sign in</h2>
     <p>Same email + password on every phone and PC keeps them all in sync.</p>
@@ -232,7 +264,6 @@
   </div>
 
   <div id="appScreen" style="display:none;">
-  <header>
     <div class="header-row">
       <div>
         <div class="eyebrow">Account Ops</div>
@@ -243,45 +274,57 @@
         <button class="icon-btn" id="signOutBtn" style="margin-top:4px;">sign out</button>
       </div>
     </div>
-  </header>
 
-  <div class="banner" id="storageWarning" style="background:rgba(242,86,75,0.12); border-color:var(--danger); color:var(--danger);"></div>
+    <div class="banner" id="storageWarning"></div>
+    <div class="banner" id="readyBanner"></div>
 
-  <div class="banner" id="readyBanner"></div>
+    <div class="stats" id="stats"></div>
 
-  <div class="stats" id="stats"></div>
-
-  <div class="toolbar" id="phoneFilters"></div>
-
-  <div class="toolbar">
-    <button class="btn" id="toggleForm">+ Add account</button>
-    <div class="spacer"></div>
-    <button class="filter-btn" data-sort="ready">Ready first</button>
-    <button class="filter-btn" data-sort="recent">Newest first</button>
-  </div>
-
-  <div class="form-card" id="formCard">
-    <div class="form-grid">
-      <div><label>Handle / username</label><input id="f-handle" placeholder="@username"></div>
-      <div><label>Phone / device</label><input id="f-phone" placeholder="Phone 1"></div>
-      <div><label>Email</label><input id="f-email" placeholder="account email"></div>
-      <div><label>Password</label><input id="f-password" placeholder="password"></div>
-      <div><label>Created date</label><input id="f-created" type="date"></div>
-      <div><label>Notes</label><input id="f-notes" placeholder="optional"></div>
+    <div class="panel" id="offersPanel">
+      <div class="panel-head" id="offersPanelHead">
+        <span class="title">Offers</span>
+        <span class="hint">reusable tags, assign to any account</span>
+        <span class="panel-caret" id="offersCaret">▸</span>
+      </div>
+      <div class="panel-body" id="offersPanelBody">
+        <div class="offer-add-row">
+          <input id="new-offer-input" placeholder="e.g. Sweepstakes US">
+          <button class="btn small" id="addOfferBtn">Add offer</button>
+        </div>
+        <div class="offer-chips" id="offerChips"></div>
+      </div>
     </div>
-    <div class="form-actions">
-      <button class="btn" id="saveAccount">Save account</button>
-      <button class="btn ghost" id="cancelForm">Cancel</button>
-    </div>
-  </div>
 
-  <div id="list"></div>
-  <div class="notice">Synced through Firebase — sign in with the same email on any phone or PC to see the same list, live.</div>
+    <div class="search-row">
+      <input id="searchInput" placeholder="Search by handle or email...">
+      <button class="btn" id="toggleForm">+ Add account</button>
+    </div>
+
+    <div class="filter-bar" id="filterBar"></div>
+
+    <div class="form-card" id="formCard">
+      <div class="form-grid">
+        <div><label>Handle / username</label><input id="f-handle" placeholder="@username"></div>
+        <div><label>Phone / device</label><input id="f-phone" placeholder="Phone 1"></div>
+        <div><label>Email</label><input id="f-email" placeholder="account email"></div>
+        <div><label>Password</label><input id="f-password" placeholder="password"></div>
+        <div><label>Created date</label><input id="f-created" type="date"></div>
+        <div><label>Offer</label><select id="f-offer"><option value="">No offer</option></select></div>
+        <div><label>Notes</label><input id="f-notes" placeholder="optional"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" id="saveAccount">Save account</button>
+        <button class="btn ghost" id="cancelForm">Cancel</button>
+      </div>
+    </div>
+
+    <div id="list"></div>
+    <div class="notice">Synced through Firebase — sign in with the same email on any phone or PC to see the same list, live.</div>
   </div>
 </div>
 
 <script>
-// ====== PASTE YOUR FIREBASE CONFIG HERE (from Firebase console > Project settings) ======
+// ====== FIREBASE CONFIG ======
 const firebaseConfig = {
   apiKey: "AIzaSyBgS7wdF0YlZL9VeUXVsnALZUCYPUmF3b4",
   authDomain: "tttrack-258e7.firebaseapp.com",
@@ -290,15 +333,22 @@ const firebaseConfig = {
   messagingSenderId: "714512068047",
   appId: "1:714512068047:web:044941bccc40fb959676ba"
 };
-// ==========================================================================================
+// ==============================
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
 const WARMUP_DAYS = 4;
 let accounts = [];
+let offers = [];
 let activePhoneFilter = 'all';
+let activeOfferFilter = 'all';
+let activeStatusFilter = 'all';
+let activeFlagFilters = new Set();
+let searchQuery = '';
 let sortMode = 'ready';
+let expandedIds = new Set();
+let editingIds = new Set();
 let currentUid = null;
 let unsubscribeSnapshot = null;
 
@@ -309,43 +359,38 @@ function daysBetween(dateStr){
   const now = new Date(todayStr() + 'T00:00:00');
   return Math.floor((now - d) / 86400000);
 }
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function escapeAttr(str){ return escapeHtml(str); }
 
-// ---- Auth screen wiring ----
+// ---- Auth ----
 function showAuthError(msg){
   const el = document.getElementById('authError');
-  el.textContent = msg;
-  el.classList.add('show');
+  el.textContent = msg; el.classList.add('show');
 }
 function clearAuthError(){
   const el = document.getElementById('authError');
   el.classList.remove('show'); el.textContent = '';
 }
-
 document.getElementById('signInBtn').onclick = async () => {
   clearAuthError();
   const email = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
-  try{
-    await auth.signInWithEmailAndPassword(email, password);
-  }catch(e){
-    showAuthError(e.message || 'Sign in failed');
-  }
+  try{ await auth.signInWithEmailAndPassword(email, password); }
+  catch(e){ showAuthError(e.message || 'Sign in failed'); }
 };
 document.getElementById('signUpBtn').onclick = async () => {
   clearAuthError();
   const email = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
-  try{
-    await auth.createUserWithEmailAndPassword(email, password);
-  }catch(e){
-    showAuthError(e.message || 'Could not create account');
-  }
+  try{ await auth.createUserWithEmailAndPassword(email, password); }
+  catch(e){ showAuthError(e.message || 'Could not create account'); }
 };
 document.getElementById('signOutBtn').onclick = async () => {
   if(unsubscribeSnapshot) unsubscribeSnapshot();
   await auth.signOut();
 };
-
 auth.onAuthStateChanged(user => {
   if(user){
     currentUid = user.uid;
@@ -364,38 +409,35 @@ auth.onAuthStateChanged(user => {
 function subscribeToAccounts(){
   const docRef = db.collection('trackers').doc(currentUid);
   unsubscribeSnapshot = docRef.onSnapshot(snap => {
-    accounts = (snap.exists && snap.data().accounts) ? snap.data().accounts : [];
+    const data = snap.exists ? snap.data() : {};
+    accounts = data.accounts || [];
+    offers = data.offers || [];
     render();
   }, err => {
-    showStorageWarning('Live sync error (' + err.message + '). Changes may not be saving — check your connection and Firestore rules.', true);
+    showStorageWarning('Live sync error (' + err.message + '). Changes may not be saving.', true);
   });
 }
 
-let storageAvailable = true;
 let lastFailedSaveAttempt = null;
-
 function showStorageWarning(msg, showRetry){
-  storageAvailable = false;
   const el = document.getElementById('storageWarning');
   el.classList.add('show');
   el.innerHTML = '⚠️ ' + msg + (showRetry ? ' <button class="icon-btn" style="color:var(--danger); margin-left:8px;" id="retrySaveBtn">retry now</button>' : '');
   if(showRetry){
     document.getElementById('retrySaveBtn').onclick = async () => {
       el.innerHTML = '⏳ Retrying...';
-      await saveAccounts();
+      await saveData();
     };
   }
 }
-
 function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
 
-async function saveAccounts(){
+async function saveData(){
   if(!currentUid) return;
   const attempts = 3;
   for(let i = 0; i < attempts; i++){
     try{
-      await db.collection('trackers').doc(currentUid).set({accounts}, {merge:true});
-      storageAvailable = true;
+      await db.collection('trackers').doc(currentUid).set({accounts, offers}, {merge:true});
       const el = document.getElementById('storageWarning');
       el.classList.remove('show'); el.innerHTML = '';
       return;
@@ -417,7 +459,8 @@ function statusOf(acc){
 function render(){
   renderStats();
   renderBanner();
-  renderPhoneFilters();
+  renderOffersPanel();
+  renderFilterBar();
   renderList();
 }
 
@@ -426,12 +469,20 @@ function renderStats(){
   const ready = accounts.filter(a => statusOf(a).key === 'ready').length;
   const warming = accounts.filter(a => statusOf(a).key === 'warming').length;
   const idle = accounts.filter(a => statusOf(a).key === 'idle').length;
-  document.getElementById('stats').innerHTML = `
-    <div class="stat"><div class="n">${total}</div><div class="l">Total accounts</div></div>
-    <div class="stat ready"><div class="n">${ready}</div><div class="l">Ready to post</div></div>
-    <div class="stat warming"><div class="n">${warming}</div><div class="l">Warming up</div></div>
-    <div class="stat"><div class="n">${idle}</div><div class="l">Not started</div></div>
-  `;
+  const map = [
+    {key:'all', n:total, l:'Total accounts', cls:''},
+    {key:'ready', n:ready, l:'Ready to post', cls:'ready'},
+    {key:'warming', n:warming, l:'Warming up', cls:'warming'},
+    {key:'idle', n:idle, l:'Not started', cls:''}
+  ];
+  document.getElementById('stats').innerHTML = map.map(s => `
+    <div class="stat ${s.cls} ${activeStatusFilter===s.key?'active':''}" data-status="${s.key}">
+      <div class="n">${s.n}</div><div class="l">${s.l}</div>
+    </div>
+  `).join('');
+  document.querySelectorAll('.stat').forEach(el => {
+    el.onclick = () => { activeStatusFilter = (activeStatusFilter === el.dataset.status) ? 'all' : el.dataset.status; render(); };
+  });
 }
 
 function renderBanner(){
@@ -439,17 +490,13 @@ function renderBanner(){
   const banner = document.getElementById('readyBanner');
   if(readyNow.length === 0){ banner.classList.remove('show'); banner.innerHTML=''; return; }
   banner.classList.add('show');
-  banner.innerHTML = `🟢 ${readyNow.length} account${readyNow.length>1?'s':''} ready to post: ${readyNow.map(a=>a.handle||'(unnamed)').join(', ')}`;
+  banner.innerHTML = `🟢 ${readyNow.length} account${readyNow.length>1?'s':''} ready to post: ${readyNow.map(a=>escapeHtml(a.handle||'(unnamed)')).join(', ')}`;
   maybeNotify(readyNow);
 }
-
 let notifiedIds = new Set();
 function maybeNotify(readyNow){
   if(!('Notification' in window)) return;
-  if(Notification.permission === 'default'){
-    Notification.requestPermission();
-    return;
-  }
+  if(Notification.permission === 'default'){ Notification.requestPermission(); return; }
   if(Notification.permission !== 'granted') return;
   readyNow.forEach(a => {
     if(!notifiedIds.has(a.id)){
@@ -459,24 +506,126 @@ function maybeNotify(readyNow){
   });
 }
 
-function renderPhoneFilters(){
-  const phones = Array.from(new Set(accounts.map(a => a.phone || 'Unassigned')));
-  const el = document.getElementById('phoneFilters');
-  const all = [`<button class="filter-btn ${activePhoneFilter==='all'?'active':''}" data-phone="all">All (${accounts.length})</button>`];
-  phones.forEach(p => {
-    const count = accounts.filter(a => (a.phone||'Unassigned') === p).length;
-    all.push(`<button class="filter-btn ${activePhoneFilter===p?'active':''}" data-phone="${escapeAttr(p)}">${escapeHtml(p)} (${count})</button>`);
-  });
-  el.innerHTML = all.join('');
-  el.querySelectorAll('.filter-btn').forEach(btn=>{
-    btn.onclick = () => { activePhoneFilter = btn.dataset.phone; render(); };
-  });
+function renderOffersPanel(){
+  const chipsEl = document.getElementById('offerChips');
+  if(offers.length === 0){
+    chipsEl.innerHTML = '<div class="offer-empty">No offers yet — add one above, then assign it to accounts below.</div>';
+  } else {
+    chipsEl.innerHTML = offers.map(o => `
+      <span class="offer-chip">${escapeHtml(o)} <span class="x" data-offer="${escapeAttr(o)}">×</span></span>
+    `).join('');
+    chipsEl.querySelectorAll('.x').forEach(x => {
+      x.onclick = () => {
+        offers = offers.filter(o => o !== x.dataset.offer);
+        saveData(); render();
+      };
+    });
+  }
+  // populate offer select in add-form
+  const formSelect = document.getElementById('f-offer');
+  const currentVal = formSelect.value;
+  formSelect.innerHTML = '<option value="">No offer</option>' + offers.map(o => `<option value="${escapeAttr(o)}">${escapeHtml(o)}</option>`).join('');
+  formSelect.value = currentVal;
 }
 
-let editingIds = new Set();
+document.getElementById('offersPanelHead').onclick = () => {
+  const body = document.getElementById('offersPanelBody');
+  const caret = document.getElementById('offersCaret');
+  const isOpen = body.classList.toggle('show');
+  caret.textContent = isOpen ? '▾' : '▸';
+};
+document.getElementById('addOfferBtn').onclick = () => {
+  const input = document.getElementById('new-offer-input');
+  const val = input.value.trim();
+  if(!val) return;
+  if(!offers.includes(val)) offers.push(val);
+  input.value = '';
+  saveData(); render();
+};
+document.getElementById('new-offer-input').addEventListener('keydown', e => {
+  if(e.key === 'Enter') document.getElementById('addOfferBtn').click();
+});
+
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchQuery = e.target.value; renderList();
+});
+
+function renderFilterBar(){
+  const phones = Array.from(new Set(accounts.map(a => a.phone || 'Unassigned')));
+  const hasActiveFilters = activePhoneFilter!=='all' || activeOfferFilter!=='all' || activeStatusFilter!=='all' || activeFlagFilters.size>0 || searchQuery;
+
+  const html = `
+    <div class="filter-group">
+      <span class="filter-label">Phone</span>
+      <select class="filter-select" id="phoneFilterSelect">
+        <option value="all">All (${accounts.length})</option>
+        ${phones.map(p => `<option value="${escapeAttr(p)}" ${activePhoneFilter===p?'selected':''}>${escapeHtml(p)} (${accounts.filter(a=>(a.phone||'Unassigned')===p).length})</option>`).join('')}
+      </select>
+    </div>
+    <div class="divider-v"></div>
+    <div class="filter-group">
+      <span class="filter-label">Offer</span>
+      <select class="filter-select" id="offerFilterSelect">
+        <option value="all">All offers</option>
+        <option value="__none__" ${activeOfferFilter==='__none__'?'selected':''}>No offer assigned</option>
+        ${offers.map(o => `<option value="${escapeAttr(o)}" ${activeOfferFilter===o?'selected':''}>${escapeHtml(o)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="divider-v"></div>
+    <div class="filter-group">
+      <span class="filter-label">Flags</span>
+      <span class="chip flag-jail ${activeFlagFilters.has('viewsJail')?'active':''}" data-flag="viewsJail">🧊 Jail</span>
+      <span class="chip flag-viral ${activeFlagFilters.has('viral')?'active':''}" data-flag="viral">🔥 Viral</span>
+      <span class="chip flag-cooked ${activeFlagFilters.has('cooked')?'active':''}" data-flag="cooked">💀 Cooked</span>
+    </div>
+    <div class="divider-v"></div>
+    <div class="filter-group">
+      <span class="filter-label">Sort</span>
+      <select class="filter-select" id="sortSelect">
+        <option value="ready" ${sortMode==='ready'?'selected':''}>Ready first</option>
+        <option value="recent" ${sortMode==='recent'?'selected':''}>Newest first</option>
+      </select>
+    </div>
+    ${hasActiveFilters ? '<div class="spacer"></div><span class="clear-filters" id="clearFiltersBtn">clear filters</span>' : ''}
+  `;
+  document.getElementById('filterBar').innerHTML = html;
+
+  document.getElementById('phoneFilterSelect').onchange = (e) => { activePhoneFilter = e.target.value; renderList(); };
+  document.getElementById('offerFilterSelect').onchange = (e) => { activeOfferFilter = e.target.value; renderList(); };
+  document.getElementById('sortSelect').onchange = (e) => { sortMode = e.target.value; renderList(); };
+  document.querySelectorAll('.chip[data-flag]').forEach(chip => {
+    chip.onclick = () => {
+      const f = chip.dataset.flag;
+      if(activeFlagFilters.has(f)) activeFlagFilters.delete(f); else activeFlagFilters.add(f);
+      renderFilterBar(); renderList();
+    };
+  });
+  const clearBtn = document.getElementById('clearFiltersBtn');
+  if(clearBtn){
+    clearBtn.onclick = () => {
+      activePhoneFilter='all'; activeOfferFilter='all'; activeStatusFilter='all';
+      activeFlagFilters.clear(); searchQuery=''; document.getElementById('searchInput').value='';
+      render();
+    };
+  }
+}
 
 function renderList(){
-  let list = accounts.filter(a => activePhoneFilter==='all' || (a.phone||'Unassigned')===activePhoneFilter);
+  let list = accounts.filter(a => {
+    if(activePhoneFilter!=='all' && (a.phone||'Unassigned')!==activePhoneFilter) return false;
+    if(activeOfferFilter==='__none__' && a.offer) return false;
+    if(activeOfferFilter!=='all' && activeOfferFilter!=='__none__' && (a.offer||'')!==activeOfferFilter) return false;
+    if(activeStatusFilter!=='all' && statusOf(a).key!==activeStatusFilter) return false;
+    if(activeFlagFilters.size>0){
+      const matches = Array.from(activeFlagFilters).some(f => !!a[f]);
+      if(!matches) return false;
+    }
+    if(searchQuery){
+      const q = searchQuery.toLowerCase();
+      if(!(a.handle||'').toLowerCase().includes(q) && !(a.email||'').toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
 
   if(sortMode === 'ready'){
     const rank = {ready:0, warming:1, idle:2};
@@ -491,8 +640,14 @@ function renderList(){
   }
 
   const container = document.getElementById('list');
-  if(list.length === 0){
+  if(accounts.length === 0){
     container.innerHTML = `<div class="empty">No accounts yet. Add your first one above.</div>`;
+    return;
+  }
+  if(list.length === 0){
+    container.innerHTML = `<div class="empty">No accounts match these filters. <span class="clear-filters" id="emptyClearBtn">clear filters</span></div>`;
+    const btn = document.getElementById('emptyClearBtn');
+    if(btn) btn.onclick = () => { document.getElementById('clearFiltersBtn')?.click(); };
     return;
   }
 
@@ -500,18 +655,9 @@ function renderList(){
     const st = statusOf(acc);
     const pct = acc.warmupDone ? Math.min(100, Math.round(((WARMUP_DAYS - (st.daysLeft||0)) / WARMUP_DAYS) * 100)) : 0;
     const isEditing = editingIds.has(acc.id);
+    const isExpanded = expandedIds.has(acc.id) || isEditing;
 
-    const topHtml = isEditing ? `
-        <input class="edit-input" data-edit="handle" placeholder="@username" value="${escapeAttr(acc.handle||'')}" style="max-width:160px;">
-        <input class="edit-input" data-edit="phone" placeholder="Phone label" value="${escapeAttr(acc.phone||'')}" style="max-width:130px;">
-      ` : `
-        <span class="handle">${escapeHtml(acc.handle || '(unnamed)')}</span>
-        <span class="phone-tag">${escapeHtml(acc.phone || 'Unassigned')}</span>
-        <span class="badge ${st.key}">${st.label}${st.key==='warming' ? ' · ' + st.daysLeft + 'd left' : ''}</span>
-        ${acc.viewsJail ? '<span class="phone-tag" style="color:#C7CDD6;">🧊 0-view jail</span>' : ''}
-        ${acc.viral ? '<span class="phone-tag" style="color:var(--ready);">🔥 viral</span>' : ''}
-        ${acc.cooked ? '<span class="phone-tag" style="color:var(--danger);">💀 cooked</span>' : ''}
-      `;
+    const offerOptions = '<option value="">No offer</option>' + offers.map(o => `<option value="${escapeAttr(o)}" ${acc.offer===o?'selected':''}>${escapeHtml(o)}</option>`).join('');
 
     const bodyHtml = isEditing ? `
         <div class="field"><div class="k">Email</div><input class="edit-input" data-edit="email" value="${escapeAttr(acc.email||'')}"></div>
@@ -529,6 +675,13 @@ function renderList(){
         <div class="field"><div class="k">Created</div><div class="v">${escapeHtml(acc.createdDate||'—')}</div></div>
       `;
 
+    const detailsHtml = isExpanded ? `
+      <div class="card-details">
+        <div class="card-body">${bodyHtml}</div>
+        <textarea class="notes-box" data-action="notes" placeholder="Notes...">${escapeHtml(acc.notes||'')}</textarea>
+      </div>
+    ` : '';
+
     const actionsHtml = isEditing ? `
         <button class="icon-btn" data-action="save-edit">save</button>
         <button class="icon-btn" data-action="cancel-edit">cancel</button>
@@ -541,9 +694,24 @@ function renderList(){
 
     return `
     <div class="card" data-id="${acc.id}">
-      <div class="card-top">${topHtml}</div>
-      <div class="card-body">${bodyHtml}</div>
-      <div class="warmup-row">
+      <div class="card-top">
+        <button class="chevron" data-action="toggle-expand">${isExpanded ? '▾' : '▸'}</button>
+        ${isEditing ? `
+          <input class="edit-input" data-edit="handle" placeholder="@username" value="${escapeAttr(acc.handle||'')}" style="max-width:150px;">
+          <input class="edit-input" data-edit="phone" placeholder="Phone label" value="${escapeAttr(acc.phone||'')}" style="max-width:120px;">
+        ` : `
+          <span class="handle">${escapeHtml(acc.handle || '(unnamed)')}</span>
+          <span class="tag">${escapeHtml(acc.phone || 'Unassigned')}</span>
+          ${acc.offer ? `<span class="tag offer-tag">${escapeHtml(acc.offer)}</span>` : ''}
+        `}
+        <span class="badge ${st.key}">${st.label}${st.key==='warming' ? ' · ' + st.daysLeft + 'd left' : ''}</span>
+        ${acc.viewsJail ? '<span class="flag-emoji" title="0-view jail">🧊</span>' : ''}
+        ${acc.viral ? '<span class="flag-emoji" title="Viral">🔥</span>' : ''}
+        ${acc.cooked ? '<span class="flag-emoji" title="Cooked">💀</span>' : ''}
+      </div>
+
+      <div class="quick-row">
+        <select data-action="offer-select">${offerOptions}</select>
         <label class="check">
           <input type="checkbox" data-action="warmup-check" ${acc.warmupDone ? 'checked' : ''}>
           Warmup done
@@ -551,6 +719,7 @@ function renderList(){
         <div class="progress-track"><div class="progress-fill ${st.key==='warming'?'warming':''}" style="width:${pct}%"></div></div>
         <span class="days-label">${acc.warmupDone ? (st.key==='ready' ? 'Ready since day ' + WARMUP_DAYS : 'Day ' + (WARMUP_DAYS - st.daysLeft) + ' of ' + WARMUP_DAYS) : 'Not started'}</span>
       </div>
+
       <div class="flags-row">
         <label class="flag-chip jail ${acc.viewsJail?'active':''}">
           <input type="checkbox" data-action="flag-jail" ${acc.viewsJail?'checked':''}> 0-view jail
@@ -562,7 +731,9 @@ function renderList(){
           <input type="checkbox" data-action="flag-cooked" ${acc.cooked?'checked':''}> Cooked
         </label>
       </div>
-      <textarea class="notes-box" data-action="notes" placeholder="Notes...">${escapeHtml(acc.notes||'')}</textarea>
+
+      ${detailsHtml}
+
       <div class="card-actions">${actionsHtml}</div>
     </div>`;
   }).join('');
@@ -571,67 +742,55 @@ function renderList(){
     const id = card.dataset.id;
     const acc = accounts.find(a => a.id === id);
 
+    card.querySelector('[data-action="toggle-expand"]').onclick = () => {
+      if(expandedIds.has(id)) expandedIds.delete(id); else expandedIds.add(id);
+      renderList();
+    };
+
     card.querySelector('[data-action="warmup-check"]').onchange = (e) => {
       acc.warmupDone = e.target.checked;
       acc.warmupDoneDate = e.target.checked ? todayStr() : null;
-      saveAccounts();
-      render();
+      saveData(); renderList(); renderStats(); renderBanner();
+    };
+
+    card.querySelector('[data-action="offer-select"]').onchange = (e) => {
+      acc.offer = e.target.value; saveData(); renderList();
     };
 
     const delBtn = card.querySelector('[data-action="delete"]');
     const confirmBtn = card.querySelector('[data-action="confirm-delete"]');
     const cancelBtn = card.querySelector('[data-action="cancel-delete"]');
-
     if(delBtn){
       delBtn.onclick = () => {
-        delBtn.style.display = 'none';
-        confirmBtn.style.display = 'inline';
-        cancelBtn.style.display = 'inline';
+        delBtn.style.display = 'none'; confirmBtn.style.display = 'inline'; cancelBtn.style.display = 'inline';
       };
       cancelBtn.onclick = () => {
-        delBtn.style.display = 'inline';
-        confirmBtn.style.display = 'none';
-        cancelBtn.style.display = 'none';
+        delBtn.style.display = 'inline'; confirmBtn.style.display = 'none'; cancelBtn.style.display = 'none';
       };
       confirmBtn.onclick = () => {
         accounts = accounts.filter(a => a.id !== id);
-        saveAccounts();
-        render();
+        saveData(); render();
       };
     }
 
     const editBtn = card.querySelector('[data-action="edit-creds"]');
-    if(editBtn){
-      editBtn.onclick = () => { editingIds.add(id); render(); };
-    }
+    if(editBtn) editBtn.onclick = () => { editingIds.add(id); expandedIds.add(id); renderList(); };
     const saveEditBtn = card.querySelector('[data-action="save-edit"]');
     if(saveEditBtn){
       saveEditBtn.onclick = () => {
-        card.querySelectorAll('[data-edit]').forEach(input => {
-          acc[input.dataset.edit] = input.value.trim();
-        });
-        editingIds.delete(id);
-        saveAccounts();
-        render();
+        card.querySelectorAll('[data-edit]').forEach(input => { acc[input.dataset.edit] = input.value.trim(); });
+        editingIds.delete(id); saveData(); renderList();
       };
     }
     const cancelEditBtn = card.querySelector('[data-action="cancel-edit"]');
-    if(cancelEditBtn){
-      cancelEditBtn.onclick = () => { editingIds.delete(id); render(); };
-    }
+    if(cancelEditBtn) cancelEditBtn.onclick = () => { editingIds.delete(id); renderList(); };
 
-    card.querySelector('[data-action="flag-jail"]').onchange = (e) => {
-      acc.viewsJail = e.target.checked; saveAccounts(); render();
-    };
-    card.querySelector('[data-action="flag-viral"]').onchange = (e) => {
-      acc.viral = e.target.checked; saveAccounts(); render();
-    };
-    card.querySelector('[data-action="flag-cooked"]').onchange = (e) => {
-      acc.cooked = e.target.checked; saveAccounts(); render();
-    };
-    card.querySelector('[data-action="notes"]').onchange = (e) => {
-      acc.notes = e.target.value; saveAccounts();
-    };
+    card.querySelector('[data-action="flag-jail"]').onchange = (e) => { acc.viewsJail = e.target.checked; saveData(); renderList(); };
+    card.querySelector('[data-action="flag-viral"]').onchange = (e) => { acc.viral = e.target.checked; saveData(); renderList(); };
+    card.querySelector('[data-action="flag-cooked"]').onchange = (e) => { acc.cooked = e.target.checked; saveData(); renderList(); };
+
+    const notesEl = card.querySelector('[data-action="notes"]');
+    if(notesEl) notesEl.onchange = (e) => { acc.notes = e.target.value; saveData(); };
 
     const pwToggle = card.querySelector('[data-action="toggle-pw"]');
     if(pwToggle){
@@ -645,11 +804,6 @@ function renderList(){
     }
   });
 }
-
-function escapeHtml(str){
-  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
-function escapeAttr(str){ return escapeHtml(str); }
 
 document.getElementById('toggleForm').onclick = () => {
   document.getElementById('formCard').classList.add('show');
@@ -665,32 +819,23 @@ document.getElementById('saveAccount').onclick = async () => {
   const email = document.getElementById('f-email').value.trim();
   const password = document.getElementById('f-password').value;
   const createdDate = document.getElementById('f-created').value || todayStr();
+  const offer = document.getElementById('f-offer').value;
   const notes = document.getElementById('f-notes').value.trim();
 
   accounts.push({
-    id: genId(), handle, phone, email, password, createdDate, notes,
+    id: genId(), handle, phone, email, password, createdDate, notes, offer,
     warmupDone: false, warmupDoneDate: null,
     viewsJail: false, viral: false, cooked: false
   });
-  await saveAccounts();
+  await saveData();
   clearForm();
   document.getElementById('formCard').classList.remove('show');
   render();
 };
-
 function clearForm(){
   ['f-handle','f-phone','f-email','f-password','f-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-offer').value = '';
 }
-
-document.querySelectorAll('.filter-btn[data-sort]').forEach(btn => {
-  btn.onclick = () => {
-    sortMode = btn.dataset.sort;
-    document.querySelectorAll('.filter-btn[data-sort]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    render();
-  };
-});
-
 </script>
 </body>
 </html>
