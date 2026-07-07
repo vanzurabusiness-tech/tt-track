@@ -991,6 +991,10 @@ function dateLabel(iso){
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
+function extractVideoIdFromUrl(url){
+  const m = (url||'').match(/\/video\/(\d+)/);
+  return m ? m[1] : null;
+}
 function renderProfileChips(){
   const el = document.getElementById('profileChips');
   if(trackedVideoLinks.length === 0){
@@ -1005,9 +1009,21 @@ function renderProfileChips(){
     </span>
   `).join('');
   el.querySelectorAll('.x').forEach(x => {
-    x.onclick = () => {
-      trackedVideoLinks = trackedVideoLinks.map(normalizeLinkEntry).filter(e => e.url !== x.dataset.profile);
-      saveData(); renderProfileChips();
+    x.onclick = async () => {
+      const url = x.dataset.profile;
+      trackedVideoLinks = trackedVideoLinks.map(normalizeLinkEntry).filter(e => e.url !== url);
+      await saveData();
+      renderProfileChips();
+
+      // Also clear its old result card, not just stop future checks.
+      const videoId = extractVideoIdFromUrl(url);
+      if(videoId){
+        try{
+          await db.collection('videoTracker').doc(currentUid).collection('videos').doc(videoId).delete();
+        }catch(e){
+          console.error('Could not delete matching result:', e.message);
+        }
+      }
     };
   });
 }
