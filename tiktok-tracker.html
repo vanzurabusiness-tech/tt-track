@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Account Ops — Tracker</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg: #12151A;
+    --surface: #1B1F26;
+    --surface-2: #232833;
+    --border: #2E3542;
+    --text: #E7EAEE;
+    --text-dim: #8993A3;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', sans-serif;
+    --ready: #3ED598;
+    --ready-bg: rgba(62,213,152,0.12);
+    --warming: #F2A93B;
+    --warming-bg: rgba(242,169,59,0.12);
+    --idle: #6B7686;
+    --idle-bg: rgba(107,118,134,0.12);
+    --danger: #F2564B;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:var(--sans); padding:28px 20px 80px;
+  }
+  .wrap{max-width:1000px; margin:0 auto;}
+
+  header{margin-bottom:22px;}
+  header .eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:0.14em;
+    color:var(--text-dim); text-transform:uppercase; margin-bottom:6px;
+  }
+  h1{font-size:22px; margin:0; font-weight:700; letter-spacing:-0.01em;}
+
+  .stats{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+    gap:10px; margin:18px 0 22px;
+  }
+  .stat{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:12px 14px;
+  }
+  .stat .n{font-family:var(--mono); font-size:22px; font-weight:700;}
+  .stat .l{font-size:11px; color:var(--text-dim); margin-top:2px;}
+  .stat.ready .n{color:var(--ready);}
+  .stat.warming .n{color:var(--warming);}
+
+  .banner{
+    display:none; background:var(--ready-bg); border:1px solid var(--ready);
+    color:var(--ready); border-radius:10px; padding:12px 16px; margin-bottom:18px;
+    font-size:13px; font-family:var(--mono); align-items:center; gap:8px;
+  }
+  .banner.show{display:flex;}
+
+  .toolbar{
+    display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px;
+  }
+  .filter-btn{
+    background:var(--surface); border:1px solid var(--border); color:var(--text-dim);
+    font-family:var(--mono); font-size:12px; padding:7px 12px; border-radius:999px;
+    cursor:pointer; transition:all .15s;
+  }
+  .filter-btn.active{background:var(--surface-2); color:var(--text); border-color:#454E5F;}
+  .spacer{flex:1;}
+  .btn{
+    background:#3E6FF2; color:white; border:none; font-family:var(--sans);
+    font-weight:600; font-size:13px; padding:9px 16px; border-radius:8px; cursor:pointer;
+  }
+  .btn:hover{background:#345ed4;}
+  .btn.ghost{background:transparent; border:1px solid var(--border); color:var(--text-dim);}
+  .btn.ghost:hover{color:var(--text); border-color:#454E5F;}
+  .btn.small{padding:6px 10px; font-size:12px;}
+
+  .form-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:16px; margin-bottom:20px; display:none;
+  }
+  .form-card.show{display:block;}
+  .form-grid{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px;
+  }
+  label{font-size:11px; color:var(--text-dim); display:block; margin-bottom:4px; font-family:var(--mono);}
+  input, select{
+    width:100%; background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+    border-radius:7px; padding:8px 10px; font-size:13px; font-family:var(--mono);
+  }
+  input:focus, select:focus{outline:none; border-color:#3E6FF2;}
+  .form-actions{margin-top:14px; display:flex; gap:8px;}
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:14px 16px; margin-bottom:10px;
+  }
+  .card-top{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .handle{font-family:var(--mono); font-weight:700; font-size:14px;}
+  .phone-tag{
+    font-family:var(--mono); font-size:11px; color:var(--text-dim);
+    background:var(--surface-2); border:1px solid var(--border); padding:2px 8px; border-radius:6px;
+  }
+  .badge{
+    font-family:var(--mono); font-size:11px; font-weight:600; padding:3px 9px;
+    border-radius:999px; margin-left:auto;
+  }
+  .badge.ready{background:var(--ready-bg); color:var(--ready);}
+  .badge.warming{background:var(--warming-bg); color:var(--warming);}
+  .badge.idle{background:var(--idle-bg); color:var(--idle);}
+
+  .card-body{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px 16px;
+    margin-top:12px; font-size:12.5px;
+  }
+  .field .k{color:var(--text-dim); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; margin-bottom:2px; font-family:var(--mono);}
+  .field .v{font-family:var(--mono);}
+  .pw-row{display:flex; align-items:center; gap:6px;}
+  .pw-toggle{cursor:pointer; color:var(--text-dim); font-size:11px; text-decoration:underline;}
+
+  .warmup-row{
+    margin-top:12px; padding-top:12px; border-top:1px solid var(--border);
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  }
+  .check{display:flex; align-items:center; gap:7px; cursor:pointer; font-size:12.5px;}
+  .check input{width:auto;}
+  .progress-track{
+    flex:1; min-width:120px; height:6px; background:var(--surface-2); border-radius:99px; overflow:hidden;
+  }
+  .progress-fill{height:100%; background:var(--ready); border-radius:99px; transition:width .3s;}
+  .progress-fill.warming{background:var(--warming);}
+  .days-label{font-family:var(--mono); font-size:11px; color:var(--text-dim); white-space:nowrap;}
+
+  .flags-row{
+    margin-top:10px; padding-top:10px; border-top:1px solid var(--border);
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  }
+  .flag-chip{
+    display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12px;
+    font-family:var(--mono); padding:5px 10px; border-radius:999px;
+    border:1px solid var(--border); color:var(--text-dim); background:var(--surface-2);
+    transition:all .15s; user-select:none;
+  }
+  .flag-chip input{width:auto; margin:0;}
+  .flag-chip.jail.active{background:rgba(107,118,134,0.18); border-color:var(--idle); color:#C7CDD6;}
+  .flag-chip.viral.active{background:var(--ready-bg); border-color:var(--ready); color:var(--ready);}
+  .flag-chip.cooked.active{background:rgba(242,86,75,0.14); border-color:var(--danger); color:var(--danger);}
+
+  .notes-box{
+    width:100%; background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+    border-radius:7px; padding:8px 10px; font-size:12.5px; font-family:var(--sans);
+    resize:vertical; min-height:34px; margin-top:8px;
+  }
+  .notes-box:focus{outline:none; border-color:#3E6FF2;}
+
+  .edit-input{
+    background:var(--surface-2); border:1px solid #3E6FF2; color:var(--text);
+    border-radius:6px; padding:6px 9px; font-size:12.5px; font-family:var(--mono); width:100%;
+  }
+  .edit-input:focus{outline:none;}
+
+  .card-actions{margin-top:12px; display:flex; gap:8px; justify-content:flex-end;}
+  .icon-btn{
+    background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:12px;
+    font-family:var(--mono); text-decoration:underline;
+  }
+  .icon-btn.danger{color:var(--danger);}
+
+  .empty{
+    text-align:center; padding:50px 20px; color:var(--text-dim); font-family:var(--mono); font-size:13px;
+    border:1px dashed var(--border); border-radius:12px;
+  }
+  .notice{font-size:11px; color:var(--text-dim); margin-top:24px; text-align:center;}
+
+  .auth-wrap{
+    max-width:360px; margin:80px auto; background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:28px;
+  }
+  .auth-wrap h2{margin:0 0 4px; font-size:19px;}
+  .auth-wrap p{color:var(--text-dim); font-size:13px; margin:0 0 20px;}
+  .auth-wrap label{margin-top:12px;}
+  .auth-error{
+    color:var(--danger); font-size:12px; font-family:var(--mono); margin-top:10px; display:none;
+  }
+  .auth-error.show{display:block;}
+  .auth-actions{display:flex; gap:8px; margin-top:16px;}
+  .header-row{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .user-chip{font-family:var(--mono); font-size:11px; color:var(--text-dim);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="auth-wrap" id="authScreen">
+    <h2>Sign in</h2>
+    <p>Same email + password on every phone and PC keeps them all in sync.</p>
+    <div><label>Email</label><input id="auth-email" type="email" placeholder="you@example.com"></div>
+    <div><label>Password</label><input id="auth-password" type="password" placeholder="At least 6 characters"></div>
+    <div class="auth-error" id="authError"></div>
+    <div class="auth-actions">
+      <button class="btn" id="signInBtn">Sign in</button>
+      <button class="btn ghost" id="signUpBtn">Create account</button>
+    </div>
+  </div>
+
+  <div id="appScreen" style="display:none;">
+  <header>
+    <div class="header-row">
+      <div>
+        <div class="eyebrow">Account Ops</div>
+        <h1>TikTok Account Tracker</h1>
+      </div>
+      <div style="text-align:right;">
+        <div class="user-chip" id="userChip"></div>
+        <button class="icon-btn" id="signOutBtn" style="margin-top:4px;">sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="banner" id="storageWarning" style="background:rgba(242,86,75,0.12); border-color:var(--danger); color:var(--danger);"></div>
+
+  <div class="banner" id="readyBanner"></div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar" id="phoneFilters"></div>
+
+  <div class="toolbar">
+    <button class="btn" id="toggleForm">+ Add account</button>
+    <div class="spacer"></div>
+    <button class="filter-btn" data-sort="ready">Ready first</button>
+    <button class="filter-btn" data-sort="recent">Newest first</button>
+  </div>
+
+  <div class="form-card" id="formCard">
+    <div class="form-grid">
+      <div><label>Handle / username</label><input id="f-handle" placeholder="@username"></div>
+      <div><label>Phone / device</label><input id="f-phone" placeholder="Phone 1"></div>
+      <div><label>Email</label><input id="f-email" placeholder="account email"></div>
+      <div><label>Password</label><input id="f-password" placeholder="password"></div>
+      <div><label>Created date</label><input id="f-created" type="date"></div>
+      <div><label>Notes</label><input id="f-notes" placeholder="optional"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" id="saveAccount">Save account</button>
+      <button class="btn ghost" id="cancelForm">Cancel</button>
+    </div>
+  </div>
+
+  <div id="list"></div>
+  <div class="notice">Synced through Firebase — sign in with the same email on any phone or PC to see the same list, live.</div>
+  </div>
+</div>
+
+<script>
+// ====== PASTE YOUR FIREBASE CONFIG HERE (from Firebase console > Project settings) ======
+const firebaseConfig = {
+  apiKey: "AIzaSyBgS7wdF0YlZL9VeUXVsnALZUCYPUmF3b4",
+  authDomain: "tttrack-258e7.firebaseapp.com",
+  projectId: "tttrack-258e7",
+  storageBucket: "tttrack-258e7.firebasestorage.app",
+  messagingSenderId: "714512068047",
+  appId: "1:714512068047:web:044941bccc40fb959676ba"
+};
+// ==========================================================================================
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+const WARMUP_DAYS = 4;
+let accounts = [];
+let activePhoneFilter = 'all';
+let sortMode = 'ready';
+let currentUid = null;
+let unsubscribeSnapshot = null;
+
+function genId(){ return 'a' + Math.random().toString(36).slice(2,10); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function daysBetween(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  const now = new Date(todayStr() + 'T00:00:00');
+  return Math.floor((now - d) / 86400000);
+}
+
+// ---- Auth screen wiring ----
+function showAuthError(msg){
+  const el = document.getElementById('authError');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function clearAuthError(){
+  const el = document.getElementById('authError');
+  el.classList.remove('show'); el.textContent = '';
+}
+
+document.getElementById('signInBtn').onclick = async () => {
+  clearAuthError();
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  try{
+    await auth.signInWithEmailAndPassword(email, password);
+  }catch(e){
+    showAuthError(e.message || 'Sign in failed');
+  }
+};
+document.getElementById('signUpBtn').onclick = async () => {
+  clearAuthError();
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  try{
+    await auth.createUserWithEmailAndPassword(email, password);
+  }catch(e){
+    showAuthError(e.message || 'Could not create account');
+  }
+};
+document.getElementById('signOutBtn').onclick = async () => {
+  if(unsubscribeSnapshot) unsubscribeSnapshot();
+  await auth.signOut();
+};
+
+auth.onAuthStateChanged(user => {
+  if(user){
+    currentUid = user.uid;
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'block';
+    document.getElementById('userChip').textContent = user.email;
+    subscribeToAccounts();
+  } else {
+    currentUid = null;
+    if(unsubscribeSnapshot) unsubscribeSnapshot();
+    document.getElementById('authScreen').style.display = 'block';
+    document.getElementById('appScreen').style.display = 'none';
+  }
+});
+
+function subscribeToAccounts(){
+  const docRef = db.collection('trackers').doc(currentUid);
+  unsubscribeSnapshot = docRef.onSnapshot(snap => {
+    accounts = (snap.exists && snap.data().accounts) ? snap.data().accounts : [];
+    render();
+  }, err => {
+    showStorageWarning('Live sync error (' + err.message + '). Changes may not be saving — check your connection and Firestore rules.', true);
+  });
+}
+
+let storageAvailable = true;
+let lastFailedSaveAttempt = null;
+
+function showStorageWarning(msg, showRetry){
+  storageAvailable = false;
+  const el = document.getElementById('storageWarning');
+  el.classList.add('show');
+  el.innerHTML = '⚠️ ' + msg + (showRetry ? ' <button class="icon-btn" style="color:var(--danger); margin-left:8px;" id="retrySaveBtn">retry now</button>' : '');
+  if(showRetry){
+    document.getElementById('retrySaveBtn').onclick = async () => {
+      el.innerHTML = '⏳ Retrying...';
+      await saveAccounts();
+    };
+  }
+}
+
+function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+async function saveAccounts(){
+  if(!currentUid) return;
+  const attempts = 3;
+  for(let i = 0; i < attempts; i++){
+    try{
+      await db.collection('trackers').doc(currentUid).set({accounts}, {merge:true});
+      storageAvailable = true;
+      const el = document.getElementById('storageWarning');
+      el.classList.remove('show'); el.innerHTML = '';
+      return;
+    }catch(e){
+      lastFailedSaveAttempt = e && e.message ? e.message : 'unknown error';
+    }
+    if(i < attempts - 1) await wait(600 * (i + 1));
+  }
+  showStorageWarning('Saving failed after a few tries (' + (lastFailedSaveAttempt || 'server error') + '). Your changes are still visible on screen — try again in a moment.', true);
+}
+
+function statusOf(acc){
+  if(!acc.warmupDone || !acc.warmupDoneDate) return {key:'idle', label:'Not warmed up', daysLeft:null};
+  const elapsed = daysBetween(acc.warmupDoneDate);
+  if(elapsed >= WARMUP_DAYS) return {key:'ready', label:'Ready to post', daysLeft:0};
+  return {key:'warming', label:'Warming', daysLeft: WARMUP_DAYS - elapsed};
+}
+
+function render(){
+  renderStats();
+  renderBanner();
+  renderPhoneFilters();
+  renderList();
+}
+
+function renderStats(){
+  const total = accounts.length;
+  const ready = accounts.filter(a => statusOf(a).key === 'ready').length;
+  const warming = accounts.filter(a => statusOf(a).key === 'warming').length;
+  const idle = accounts.filter(a => statusOf(a).key === 'idle').length;
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="n">${total}</div><div class="l">Total accounts</div></div>
+    <div class="stat ready"><div class="n">${ready}</div><div class="l">Ready to post</div></div>
+    <div class="stat warming"><div class="n">${warming}</div><div class="l">Warming up</div></div>
+    <div class="stat"><div class="n">${idle}</div><div class="l">Not started</div></div>
+  `;
+}
+
+function renderBanner(){
+  const readyNow = accounts.filter(a => statusOf(a).key === 'ready');
+  const banner = document.getElementById('readyBanner');
+  if(readyNow.length === 0){ banner.classList.remove('show'); banner.innerHTML=''; return; }
+  banner.classList.add('show');
+  banner.innerHTML = `🟢 ${readyNow.length} account${readyNow.length>1?'s':''} ready to post: ${readyNow.map(a=>a.handle||'(unnamed)').join(', ')}`;
+  maybeNotify(readyNow);
+}
+
+let notifiedIds = new Set();
+function maybeNotify(readyNow){
+  if(!('Notification' in window)) return;
+  if(Notification.permission === 'default'){
+    Notification.requestPermission();
+    return;
+  }
+  if(Notification.permission !== 'granted') return;
+  readyNow.forEach(a => {
+    if(!notifiedIds.has(a.id)){
+      try{ new Notification('TikTok account ready to post', {body: (a.handle||'Account') + ' finished its 4-day warmup.'}); }catch(e){}
+      notifiedIds.add(a.id);
+    }
+  });
+}
+
+function renderPhoneFilters(){
+  const phones = Array.from(new Set(accounts.map(a => a.phone || 'Unassigned')));
+  const el = document.getElementById('phoneFilters');
+  const all = [`<button class="filter-btn ${activePhoneFilter==='all'?'active':''}" data-phone="all">All (${accounts.length})</button>`];
+  phones.forEach(p => {
+    const count = accounts.filter(a => (a.phone||'Unassigned') === p).length;
+    all.push(`<button class="filter-btn ${activePhoneFilter===p?'active':''}" data-phone="${escapeAttr(p)}">${escapeHtml(p)} (${count})</button>`);
+  });
+  el.innerHTML = all.join('');
+  el.querySelectorAll('.filter-btn').forEach(btn=>{
+    btn.onclick = () => { activePhoneFilter = btn.dataset.phone; render(); };
+  });
+}
+
+let editingIds = new Set();
+
+function renderList(){
+  let list = accounts.filter(a => activePhoneFilter==='all' || (a.phone||'Unassigned')===activePhoneFilter);
+
+  if(sortMode === 'ready'){
+    const rank = {ready:0, warming:1, idle:2};
+    list = list.slice().sort((a,b)=>{
+      const ra = rank[statusOf(a).key], rb = rank[statusOf(b).key];
+      if(ra !== rb) return ra - rb;
+      const da = statusOf(a).daysLeft ?? 99, db = statusOf(b).daysLeft ?? 99;
+      return da - db;
+    });
+  } else {
+    list = list.slice().sort((a,b) => (b.createdDate||'').localeCompare(a.createdDate||''));
+  }
+
+  const container = document.getElementById('list');
+  if(list.length === 0){
+    container.innerHTML = `<div class="empty">No accounts yet. Add your first one above.</div>`;
+    return;
+  }
+
+  container.innerHTML = list.map(acc => {
+    const st = statusOf(acc);
+    const pct = acc.warmupDone ? Math.min(100, Math.round(((WARMUP_DAYS - (st.daysLeft||0)) / WARMUP_DAYS) * 100)) : 0;
+    const isEditing = editingIds.has(acc.id);
+
+    const topHtml = isEditing ? `
+        <input class="edit-input" data-edit="handle" placeholder="@username" value="${escapeAttr(acc.handle||'')}" style="max-width:160px;">
+        <input class="edit-input" data-edit="phone" placeholder="Phone label" value="${escapeAttr(acc.phone||'')}" style="max-width:130px;">
+      ` : `
+        <span class="handle">${escapeHtml(acc.handle || '(unnamed)')}</span>
+        <span class="phone-tag">${escapeHtml(acc.phone || 'Unassigned')}</span>
+        <span class="badge ${st.key}">${st.label}${st.key==='warming' ? ' · ' + st.daysLeft + 'd left' : ''}</span>
+        ${acc.viewsJail ? '<span class="phone-tag" style="color:#C7CDD6;">🧊 0-view jail</span>' : ''}
+        ${acc.viral ? '<span class="phone-tag" style="color:var(--ready);">🔥 viral</span>' : ''}
+        ${acc.cooked ? '<span class="phone-tag" style="color:var(--danger);">💀 cooked</span>' : ''}
+      `;
+
+    const bodyHtml = isEditing ? `
+        <div class="field"><div class="k">Email</div><input class="edit-input" data-edit="email" value="${escapeAttr(acc.email||'')}"></div>
+        <div class="field"><div class="k">Password</div><input class="edit-input" data-edit="password" value="${escapeAttr(acc.password||'')}"></div>
+        <div class="field"><div class="k">Created</div><input class="edit-input" type="date" data-edit="createdDate" value="${escapeAttr(acc.createdDate||'')}"></div>
+      ` : `
+        <div class="field"><div class="k">Email</div><div class="v">${escapeHtml(acc.email||'—')}</div></div>
+        <div class="field">
+          <div class="k">Password</div>
+          <div class="v pw-row">
+            <span class="pw-text" data-shown="false" data-real="${escapeAttr(acc.password||'')}">••••••••</span>
+            <span class="pw-toggle" data-action="toggle-pw">show</span>
+          </div>
+        </div>
+        <div class="field"><div class="k">Created</div><div class="v">${escapeHtml(acc.createdDate||'—')}</div></div>
+      `;
+
+    const actionsHtml = isEditing ? `
+        <button class="icon-btn" data-action="save-edit">save</button>
+        <button class="icon-btn" data-action="cancel-edit">cancel</button>
+      ` : `
+        <button class="icon-btn" data-action="edit-creds">edit</button>
+        <button class="icon-btn danger" data-action="delete">delete</button>
+        <button class="icon-btn danger" data-action="confirm-delete" style="display:none;">confirm delete</button>
+        <button class="icon-btn" data-action="cancel-delete" style="display:none;">cancel</button>
+      `;
+
+    return `
+    <div class="card" data-id="${acc.id}">
+      <div class="card-top">${topHtml}</div>
+      <div class="card-body">${bodyHtml}</div>
+      <div class="warmup-row">
+        <label class="check">
+          <input type="checkbox" data-action="warmup-check" ${acc.warmupDone ? 'checked' : ''}>
+          Warmup done
+        </label>
+        <div class="progress-track"><div class="progress-fill ${st.key==='warming'?'warming':''}" style="width:${pct}%"></div></div>
+        <span class="days-label">${acc.warmupDone ? (st.key==='ready' ? 'Ready since day ' + WARMUP_DAYS : 'Day ' + (WARMUP_DAYS - st.daysLeft) + ' of ' + WARMUP_DAYS) : 'Not started'}</span>
+      </div>
+      <div class="flags-row">
+        <label class="flag-chip jail ${acc.viewsJail?'active':''}">
+          <input type="checkbox" data-action="flag-jail" ${acc.viewsJail?'checked':''}> 0-view jail
+        </label>
+        <label class="flag-chip viral ${acc.viral?'active':''}">
+          <input type="checkbox" data-action="flag-viral" ${acc.viral?'checked':''}> Viral
+        </label>
+        <label class="flag-chip cooked ${acc.cooked?'active':''}">
+          <input type="checkbox" data-action="flag-cooked" ${acc.cooked?'checked':''}> Cooked
+        </label>
+      </div>
+      <textarea class="notes-box" data-action="notes" placeholder="Notes...">${escapeHtml(acc.notes||'')}</textarea>
+      <div class="card-actions">${actionsHtml}</div>
+    </div>`;
+  }).join('');
+
+  container.querySelectorAll('.card').forEach(card => {
+    const id = card.dataset.id;
+    const acc = accounts.find(a => a.id === id);
+
+    card.querySelector('[data-action="warmup-check"]').onchange = (e) => {
+      acc.warmupDone = e.target.checked;
+      acc.warmupDoneDate = e.target.checked ? todayStr() : null;
+      saveAccounts();
+      render();
+    };
+
+    const delBtn = card.querySelector('[data-action="delete"]');
+    const confirmBtn = card.querySelector('[data-action="confirm-delete"]');
+    const cancelBtn = card.querySelector('[data-action="cancel-delete"]');
+
+    if(delBtn){
+      delBtn.onclick = () => {
+        delBtn.style.display = 'none';
+        confirmBtn.style.display = 'inline';
+        cancelBtn.style.display = 'inline';
+      };
+      cancelBtn.onclick = () => {
+        delBtn.style.display = 'inline';
+        confirmBtn.style.display = 'none';
+        cancelBtn.style.display = 'none';
+      };
+      confirmBtn.onclick = () => {
+        accounts = accounts.filter(a => a.id !== id);
+        saveAccounts();
+        render();
+      };
+    }
+
+    const editBtn = card.querySelector('[data-action="edit-creds"]');
+    if(editBtn){
+      editBtn.onclick = () => { editingIds.add(id); render(); };
+    }
+    const saveEditBtn = card.querySelector('[data-action="save-edit"]');
+    if(saveEditBtn){
+      saveEditBtn.onclick = () => {
+        card.querySelectorAll('[data-edit]').forEach(input => {
+          acc[input.dataset.edit] = input.value.trim();
+        });
+        editingIds.delete(id);
+        saveAccounts();
+        render();
+      };
+    }
+    const cancelEditBtn = card.querySelector('[data-action="cancel-edit"]');
+    if(cancelEditBtn){
+      cancelEditBtn.onclick = () => { editingIds.delete(id); render(); };
+    }
+
+    card.querySelector('[data-action="flag-jail"]').onchange = (e) => {
+      acc.viewsJail = e.target.checked; saveAccounts(); render();
+    };
+    card.querySelector('[data-action="flag-viral"]').onchange = (e) => {
+      acc.viral = e.target.checked; saveAccounts(); render();
+    };
+    card.querySelector('[data-action="flag-cooked"]').onchange = (e) => {
+      acc.cooked = e.target.checked; saveAccounts(); render();
+    };
+    card.querySelector('[data-action="notes"]').onchange = (e) => {
+      acc.notes = e.target.value; saveAccounts();
+    };
+
+    const pwToggle = card.querySelector('[data-action="toggle-pw"]');
+    if(pwToggle){
+      pwToggle.onclick = () => {
+        const span = card.querySelector('.pw-text');
+        const shown = span.dataset.shown === 'true';
+        span.textContent = shown ? '••••••••' : span.dataset.real;
+        span.dataset.shown = (!shown).toString();
+        pwToggle.textContent = shown ? 'show' : 'hide';
+      };
+    }
+  });
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function escapeAttr(str){ return escapeHtml(str); }
+
+document.getElementById('toggleForm').onclick = () => {
+  document.getElementById('formCard').classList.add('show');
+  document.getElementById('f-created').value = todayStr();
+};
+document.getElementById('cancelForm').onclick = () => {
+  document.getElementById('formCard').classList.remove('show');
+  clearForm();
+};
+document.getElementById('saveAccount').onclick = async () => {
+  const handle = document.getElementById('f-handle').value.trim();
+  const phone = document.getElementById('f-phone').value.trim() || 'Unassigned';
+  const email = document.getElementById('f-email').value.trim();
+  const password = document.getElementById('f-password').value;
+  const createdDate = document.getElementById('f-created').value || todayStr();
+  const notes = document.getElementById('f-notes').value.trim();
+
+  accounts.push({
+    id: genId(), handle, phone, email, password, createdDate, notes,
+    warmupDone: false, warmupDoneDate: null,
+    viewsJail: false, viral: false, cooked: false
+  });
+  await saveAccounts();
+  clearForm();
+  document.getElementById('formCard').classList.remove('show');
+  render();
+};
+
+function clearForm(){
+  ['f-handle','f-phone','f-email','f-password','f-notes'].forEach(id => document.getElementById(id).value = '');
+}
+
+document.querySelectorAll('.filter-btn[data-sort]').forEach(btn => {
+  btn.onclick = () => {
+    sortMode = btn.dataset.sort;
+    document.querySelectorAll('.filter-btn[data-sort]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  };
+});
+
+</script>
+</body>
+</html>
