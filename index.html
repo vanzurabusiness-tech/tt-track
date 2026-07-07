@@ -67,9 +67,10 @@
     padding:10px 12px; font-family:var(--mono); font-size:12.5px; word-break:break-all;
   }
   .video-card{
-    background:var(--surface-2); border:1px solid var(--border); border-radius:10px;
-    padding:12px 14px; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    background:var(--surface-3); border:1px solid var(--border); border-radius:9px;
+    padding:10px 12px; margin-bottom:7px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
   }
+  .video-card:last-child{margin-bottom:0;}
   .video-card a{color:var(--accent); font-family:var(--mono); font-size:12.5px; text-decoration:none; word-break:break-all;}
   .video-card a:hover{text-decoration:underline;}
   .video-views{font-family:var(--mono); font-weight:700; font-size:15px; white-space:nowrap;}
@@ -78,14 +79,25 @@
     font-family:var(--mono); font-size:10.5px; background:var(--ready-bg); color:var(--ready);
     padding:2px 7px; border-radius:999px;
   }
-  .video-updated{font-family:var(--mono); font-size:10.5px; color:var(--text-faint); margin-left:auto; white-space:nowrap;}
-  .account-group{margin-bottom:16px;}
-  .account-group:last-child{margin-bottom:0;}
-  .account-group-head{
-    display:flex; align-items:center; gap:8px; margin-bottom:8px; padding-bottom:6px;
-    border-bottom:1px solid var(--border-soft);
+  .video-updated{font-family:var(--mono); font-size:10.5px; color:var(--text-faint); white-space:nowrap;}
+  .video-delete{
+    background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:15px;
+    line-height:1; padding:2px 4px; margin-left:auto;
   }
-  .account-group-head .handle{font-size:13px;}
+  .video-delete:hover{color:var(--danger);}
+  .profile-card{
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:14px;
+    padding:14px 16px; margin-bottom:12px;
+  }
+  .profile-card:last-child{margin-bottom:0;}
+  .profile-card-head{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+  .profile-avatar{
+    width:34px; height:34px; border-radius:50%; background:var(--offer-bg); color:var(--offer);
+    display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-weight:700;
+    font-size:14px; flex-shrink:0; border:1px solid rgba(168,126,240,0.35);
+  }
+  .profile-card-head .handle{font-size:14px;}
+  .profile-card-head .tags{display:flex; gap:6px; flex-wrap:wrap; margin-left:2px;}
 
   /* Stats */
   .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:16px;}
@@ -1047,26 +1059,51 @@ function renderVideoList(){
     const matchedAccount = accounts.find(a => (a.handle||'').replace(/^@/,'') === handle);
     const phoneTag = matchedAccount ? `<span class="tag">${escapeHtml(matchedAccount.phone||'Unassigned')}</span>` : '';
     const totalViews = videos.reduce((sum, v) => sum + (v.views||0), 0);
+    const initial = handle.charAt(0).toUpperCase();
 
     return `
-      <div class="account-group">
-        <div class="account-group-head">
+      <div class="profile-card">
+        <div class="profile-card-head">
+          <div class="profile-avatar">${escapeHtml(initial)}</div>
           <span class="handle">@${escapeHtml(handle)}</span>
-          ${phoneTag}
-          <span class="tag">${videos.length} video${videos.length > 1 ? 's' : ''}</span>
-          <span class="tag">${totalViews.toLocaleString()} total views</span>
+          <div class="tags">
+            ${phoneTag}
+            <span class="tag">${videos.length} video${videos.length > 1 ? 's' : ''}</span>
+            <span class="tag">${totalViews.toLocaleString()} total views</span>
+          </div>
         </div>
         ${videos.map(v => `
-          <div class="video-card">
+          <div class="video-card" data-video-id="${escapeAttr(v.id)}" data-video-url="${escapeAttr(v.url||'')}">
             <a href="${escapeAttr(v.url||'#')}" target="_blank" rel="noopener">${escapeHtml(v.url||'—')}</a>
             <span class="video-views">${(v.views||0).toLocaleString()} views</span>
             <div class="video-milestones">${(v.notifiedMilestones||[]).map(m => `<span class="m">${m.toLocaleString()}</span>`).join('')}</div>
             <span class="video-updated">updated ${timeAgo(v.updatedAt)}</span>
+            <button class="video-delete" data-action="delete-video" title="Stop tracking this video">×</button>
           </div>
         `).join('')}
       </div>
     `;
   }).join('');
+
+  el.querySelectorAll('[data-action="delete-video"]').forEach(btn => {
+    btn.onclick = async () => {
+      const card = btn.closest('.video-card');
+      const videoId = card.dataset.videoId;
+      const videoUrl = card.dataset.videoUrl;
+
+      // Stop the bot from checking it again.
+      trackedVideoLinks = trackedVideoLinks.filter(link => link !== videoUrl);
+      await saveData();
+      renderProfileChips();
+
+      // Remove its stored results.
+      try{
+        await db.collection('videoTracker').doc(currentUid).collection('videos').doc(videoId).delete();
+      }catch(e){
+        console.error('Could not delete video result:', e.message);
+      }
+    };
+  });
 }
 
 // re-render profile chips whenever accounts/offers data refreshes too
