@@ -81,10 +81,11 @@
   }
   .video-updated{font-family:var(--mono); font-size:10.5px; color:var(--text-faint); white-space:nowrap;}
   .video-delete{
-    background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:15px;
-    line-height:1; padding:2px 4px; margin-left:auto;
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text-dim); cursor:pointer;
+    font-size:15px; line-height:1; width:24px; height:24px; border-radius:6px; margin-left:auto;
+    flex-shrink:0; display:flex; align-items:center; justify-content:center;
   }
-  .video-delete:hover{color:var(--danger);}
+  .video-delete:hover{color:var(--danger); border-color:var(--danger); background:var(--danger-bg);}
   .profile-card{
     background:var(--surface); border:1px solid var(--border-soft); border-radius:14px;
     padding:14px 16px; margin-bottom:12px;
@@ -141,6 +142,7 @@
   }
   .offer-chip .x{cursor:pointer; opacity:.7; padding:0 3px;}
   .offer-chip .x:hover{opacity:1; color:var(--danger);}
+  .chip-date{color:var(--text-faint); font-size:10.5px; margin-right:2px;}
   .offer-empty{color:var(--text-faint); font-size:12px; font-family:var(--mono); margin-top:10px;}
 
   /* Toolbar / filters */
@@ -980,18 +982,31 @@ function shortenLink(url){
   const m = url.match(/@([^/]+)\/video\/(\d+)/);
   return m ? `@${m[1]} · ...${m[2].slice(-6)}` : url;
 }
+function normalizeLinkEntry(entry){
+  // Supports old data saved as plain strings before dates were added.
+  return typeof entry === 'string' ? { url: entry, addedAt: null } : entry;
+}
+function dateLabel(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
 function renderProfileChips(){
   const el = document.getElementById('profileChips');
   if(trackedVideoLinks.length === 0){
     el.innerHTML = '<div class="offer-empty">No videos tracked yet — paste a video link above.</div>';
     return;
   }
-  el.innerHTML = trackedVideoLinks.map(p => `
-    <span class="offer-chip" title="${escapeAttr(p)}">${escapeHtml(shortenLink(p))} <span class="x" data-profile="${escapeAttr(p)}">×</span></span>
+  const sorted = trackedVideoLinks.map(normalizeLinkEntry).slice().sort((a, b) => new Date(b.addedAt||0) - new Date(a.addedAt||0));
+  el.innerHTML = sorted.map(entry => `
+    <span class="offer-chip" title="${escapeAttr(entry.url)}">
+      ${entry.addedAt ? `<span class="chip-date">${escapeHtml(dateLabel(entry.addedAt))}</span>` : ''}
+      ${escapeHtml(shortenLink(entry.url))} <span class="x" data-profile="${escapeAttr(entry.url)}">×</span>
+    </span>
   `).join('');
   el.querySelectorAll('.x').forEach(x => {
     x.onclick = () => {
-      trackedVideoLinks = trackedVideoLinks.filter(p => p !== x.dataset.profile);
+      trackedVideoLinks = trackedVideoLinks.map(normalizeLinkEntry).filter(e => e.url !== x.dataset.profile);
       saveData(); renderProfileChips();
     };
   });
@@ -1004,7 +1019,10 @@ document.getElementById('addProfileBtn').onclick = () => {
     alert('That doesn\'t look like a TikTok video link. Expected format:\nhttps://www.tiktok.com/@handle/video/1234567890');
     return;
   }
-  if(!trackedVideoLinks.includes(val)) trackedVideoLinks.push(val);
+  const normalized = trackedVideoLinks.map(normalizeLinkEntry);
+  if(!normalized.some(e => e.url === val)){
+    trackedVideoLinks = [...normalized, { url: val, addedAt: new Date().toISOString() }];
+  }
   input.value = '';
   saveData(); renderProfileChips();
 };
@@ -1092,7 +1110,7 @@ function renderVideoList(){
       const videoUrl = card.dataset.videoUrl;
 
       // Stop the bot from checking it again.
-      trackedVideoLinks = trackedVideoLinks.filter(link => link !== videoUrl);
+      trackedVideoLinks = trackedVideoLinks.map(normalizeLinkEntry).filter(entry => entry.url !== videoUrl);
       await saveData();
       renderProfileChips();
 
