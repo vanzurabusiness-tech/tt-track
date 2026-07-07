@@ -377,13 +377,13 @@
 
       <div class="panel">
         <div class="panel-head" style="cursor:default;">
-          <span class="title">Tracked profiles</span>
-          <span class="hint">public TikTok profile links the bot checks</span>
+          <span class="title">Tracked videos</span>
+          <span class="hint">paste the full video link for each video you want watched</span>
         </div>
         <div class="panel-body show" style="margin-top:10px;">
           <div class="offer-add-row">
-            <input id="new-profile-input" placeholder="handle, no @ symbol">
-            <button class="btn small" id="addProfileBtn">Add profile</button>
+            <input id="new-profile-input" placeholder="https://www.tiktok.com/@handle/video/1234...">
+            <button class="btn small" id="addProfileBtn">Add video</button>
           </div>
           <div class="offer-chips" id="profileChips"></div>
         </div>
@@ -391,7 +391,7 @@
 
       <div class="panel">
         <div class="panel-head" style="cursor:default;">
-          <span class="title">Tracked videos</span>
+          <span class="title">Results</span>
           <span class="hint">live results from the bot's last checks</span>
         </div>
         <div class="panel-body show" style="margin-top:10px;">
@@ -421,7 +421,7 @@ const db = firebase.firestore();
 const WARMUP_DAYS = 4;
 let accounts = [];
 let offers = [];
-let trackedProfiles = [];
+let trackedVideoLinks = [];
 let trackedVideos = [];
 let activePhoneFilter = 'all';
 let activeOfferFilter = 'all';
@@ -499,7 +499,7 @@ function subscribeToAccounts(){
     const data = snap.exists ? snap.data() : {};
     accounts = data.accounts || [];
     offers = data.offers || [];
-    trackedProfiles = data.trackedProfiles || [];
+    trackedVideoLinks = data.trackedVideoLinks || [];
     render();
   }, err => {
     showStorageWarning('Live sync error (' + err.message + '). Changes may not be saving.', true);
@@ -535,7 +535,7 @@ async function saveData(){
   const attempts = 3;
   for(let i = 0; i < attempts; i++){
     try{
-      await db.collection('trackers').doc(currentUid).set({accounts, offers, trackedProfiles}, {merge:true});
+      await db.collection('trackers').doc(currentUid).set({accounts, offers, trackedVideoLinks}, {merge:true});
       const el = document.getElementById('storageWarning');
       el.classList.remove('show'); el.innerHTML = '';
       return;
@@ -956,28 +956,36 @@ document.getElementById('copyUidBtn').onclick = () => {
   });
 };
 
-// ---- Tracked profiles ----
+// ---- Tracked videos (by direct link) ----
+function shortenLink(url){
+  const m = url.match(/@([^/]+)\/video\/(\d+)/);
+  return m ? `@${m[1]} · ...${m[2].slice(-6)}` : url;
+}
 function renderProfileChips(){
   const el = document.getElementById('profileChips');
-  if(trackedProfiles.length === 0){
-    el.innerHTML = '<div class="offer-empty">No profiles tracked yet — add a handle above.</div>';
+  if(trackedVideoLinks.length === 0){
+    el.innerHTML = '<div class="offer-empty">No videos tracked yet — paste a video link above.</div>';
     return;
   }
-  el.innerHTML = trackedProfiles.map(p => `
-    <span class="offer-chip">@${escapeHtml(p)} <span class="x" data-profile="${escapeAttr(p)}">×</span></span>
+  el.innerHTML = trackedVideoLinks.map(p => `
+    <span class="offer-chip" title="${escapeAttr(p)}">${escapeHtml(shortenLink(p))} <span class="x" data-profile="${escapeAttr(p)}">×</span></span>
   `).join('');
   el.querySelectorAll('.x').forEach(x => {
     x.onclick = () => {
-      trackedProfiles = trackedProfiles.filter(p => p !== x.dataset.profile);
+      trackedVideoLinks = trackedVideoLinks.filter(p => p !== x.dataset.profile);
       saveData(); renderProfileChips();
     };
   });
 }
 document.getElementById('addProfileBtn').onclick = () => {
   const input = document.getElementById('new-profile-input');
-  let val = input.value.trim().replace(/^@/, '');
+  let val = input.value.trim();
   if(!val) return;
-  if(!trackedProfiles.includes(val)) trackedProfiles.push(val);
+  if(!/tiktok\.com\/@[^/]+\/video\/\d+/.test(val)){
+    alert('That doesn\'t look like a TikTok video link. Expected format:\nhttps://www.tiktok.com/@handle/video/1234567890');
+    return;
+  }
+  if(!trackedVideoLinks.includes(val)) trackedVideoLinks.push(val);
   input.value = '';
   saveData(); renderProfileChips();
 };
